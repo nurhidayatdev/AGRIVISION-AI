@@ -179,7 +179,7 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
   const handleRunAllGemini = async () => {
     if (!data || !data.map_data) return;
 
-    const apiKey = 'AIzaSyDhubi3BfXRIpIuNdKoBG6bNE-XI8QeWiw';
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     setIsAiLoading(true);
     let successCount = 0;
