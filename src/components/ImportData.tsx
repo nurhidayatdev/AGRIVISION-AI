@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
 import {
   Bell,
@@ -51,22 +52,7 @@ export default function ImportData({ onLogout, onNavigate }: { onLogout: () => v
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
-      {/* Top Navbar */}
-      <nav className="bg-[#023E2D] text-white flex items-center justify-between pl-6 pr-4 h-[64px] shrink-0">
-        <div className="flex items-center h-full">
-          <div className="flex items-center mr-10 gap-3">
-             <img src={logo} alt="AgriVision AI Logo" className="w-7 h-7 object-contain" />
-            <span className="font-extrabold text-[17px] tracking-wide">AGRIVISION AI</span>
-          </div>
-
-          <div className="flex items-center h-full text-[15px] font-medium ml-4">
-            <button onClick={() => onNavigate('dashboard')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Dashboard</button>
-            <button onClick={() => onNavigate('kelola_data')} className="px-6 h-full flex items-center bg-[#006B4D] text-white font-bold tracking-wide">Kelola Data</button>
-            <button onClick={() => onNavigate('cetak_laporan')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Cetak Laporan</button>
-            <button onClick={() => onNavigate('users')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Pengguna</button>
-          </div>
-        </div>
-      </nav>
+      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center justify-between shrink-0 shadow-sm z-10">

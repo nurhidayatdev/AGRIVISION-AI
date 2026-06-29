@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
+import { supabase } from '../utils/supabaseClient';
 import {
   Bell,
   User,
@@ -14,21 +16,70 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const BACKEND_URL = 'http://localhost/AGRIVISION-AI/backend_php/api_riwayat_notifikasi.php';
+  // Supabase imported above
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch(BACKEND_URL, { credentials: 'include' });
-        const result = await res.json();
-        if (res.ok && result.status === 'success') {
-          setData(result.data);
-        } else {
-          setError(result.message || 'Gagal memuat riwayat');
-          if (res.status === 401) onLogout();
+        const { data: records, error: fetchError } = await supabase
+          .from('data_alokasi_pupuk')
+          .select(`
+            id_alokasi,
+            last_analyzed_at,
+            narasi_rekomendasi,
+            status_risiko,
+            id_kabupaten,
+            master_kabupaten ( nama_kabupaten )
+          `)
+          .in('status_risiko', ['Kritis', 'Waspada'])
+          .order('last_analyzed_at', { ascending: false });
+
+        if (fetchError) throw fetchError;
+
+        if (!records) {
+           setData({ logs: [], summary: { total_alerts: 0, total_pending: 0, top_kabupaten: '-' } });
+           setIsLoading(false);
+           return;
         }
+
+        const logs = records.map((r: any) => ({
+          id: r.id_alokasi,
+          dikirim_pada: r.last_analyzed_at || new Date().toISOString(),
+          nama_kabupaten: r.master_kabupaten?.nama_kabupaten || 'Unknown',
+          pesan_ai: r.narasi_rekomendasi || '-',
+          status_tindakan: r.status_risiko || 'Aman',
+          id_kabupaten: r.id_kabupaten
+        }));
+
+        let total_alerts = logs.length;
+        let total_pending = logs.filter((l: any) => ['kritis', 'waspada', 'defisit', 'menunggu'].includes(l.status_tindakan.toLowerCase())).length;
+        
+        let kbCounts: any = {};
+        logs.forEach((l: any) => {
+          kbCounts[l.nama_kabupaten] = (kbCounts[l.nama_kabupaten] || 0) + 1;
+        });
+        
+        let top_kabupaten = '-';
+        let maxCount = 0;
+        for(let k in kbCounts) {
+          if (kbCounts[k] > maxCount) {
+             maxCount = kbCounts[k];
+             top_kabupaten = k;
+          }
+        }
+
+        setData({
+           logs,
+           summary: {
+              total_alerts,
+              total_pending,
+              top_kabupaten
+           }
+        });
+
       } catch (err) {
-        setError('Gagal terhubung ke server');
+        console.error(err);
+        setError('Gagal memuat riwayat');
       } finally {
         setIsLoading(false);
       }
@@ -56,33 +107,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
       
-      {/* Top Navbar */}
-      <nav className="bg-[#023E2D] text-white flex items-center justify-between pl-6 pr-4 h-[64px] shrink-0">
-        <div className="flex items-center h-full">
-          <div className="flex items-center mr-10 gap-3">
-             <img src={logo} alt="AgriVision AI Logo" className="w-7 h-7 object-contain" />
-            <span className="font-extrabold text-[17px] tracking-wide">AGRIVISION AI</span>
-          </div>
-
-          <div className="flex items-center h-full text-[15px] font-medium ml-4">
-            <button onClick={() => onNavigate('dashboard')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Dashboard</button>
-            <button onClick={() => onNavigate('kelola_data')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Data</button>
-            <button onClick={() => onNavigate('cetak_laporan')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Cetak Laporan</button>
-            <button onClick={() => onNavigate('users')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Pengguna</button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-6 h-full">
-            <div 
-              className="w-10 h-10 rounded-md bg-[#006B4D] flex items-center justify-center border border-white/10 hover:bg-[#00573E] cursor-pointer transition-colors group relative"
-              onClick={onLogout}
-              title="Logout"
-            >
-              <User size={18} className="text-white group-hover:hidden" strokeWidth={2.5} />
-              <LogOut size={18} className="text-white hidden group-hover:block" strokeWidth={2.5} />
-            </div>
-        </div>
-      </nav>
+      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="notifications" />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">

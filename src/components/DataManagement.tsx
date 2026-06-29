@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
 import { supabase } from '../utils/supabaseClient';
 import {
@@ -20,6 +21,8 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Semua Status');
 
   const fetchData = async () => {
     try {
@@ -118,51 +121,17 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
     );
   }
 
+  const filteredData = data.filter((row: any) => {
+    const matchSearch = row.nama_kabupaten?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        row.kode_bps?.includes(searchQuery);
+    const matchStatus = statusFilter === 'Semua Status' || 
+                        (row.status_risiko || 'aman').toLowerCase() === statusFilter.toLowerCase();
+    return matchSearch && matchStatus;
+  });
+
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
-      {/* Top Navbar */}
-      <nav className="bg-[#023E2D] text-white flex items-center justify-between pl-6 pr-4 h-[64px] shrink-0">
-        {/* Left: Logo & Nav */}
-        <div className="flex items-center h-full">
-          {/* Logo */}
-          <div className="flex items-center mr-10 gap-3">
-             <img src={logo} alt="AgriVision AI Logo" className="w-7 h-7 object-contain" />
-            <span className="font-extrabold text-[17px] tracking-wide">AGRIVISION AI</span>
-          </div>
-
-          {/* Nav Links */}
-          <div className="flex items-center h-full text-[15px] font-medium ml-4">
-            <button onClick={() => onNavigate('dashboard')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Dashboard</button>
-            <button onClick={() => onNavigate('kelola_data')} className="px-6 h-full flex items-center bg-[#006B4D] text-white font-bold tracking-wide">Kelola Data</button>
-            <button onClick={() => onNavigate('cetak_laporan')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Cetak Laporan</button>
-            <button onClick={() => onNavigate('users')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Pengguna</button>
-          </div>
-        </div>
-
-        {/* Right: User Info */}
-        <div className="flex items-center gap-6 h-full">
-          <span className="text-[13px] text-white/90 font-medium">Senin, 22 Juni 2026</span>
-          <button onClick={() => onNavigate('notifications')} className="relative text-white/90 hover:text-white mr-2">
-            <Bell size={18} strokeWidth={2.5} />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#0FE193] rounded-full border-2 border-[#023E2D]"></span>
-          </button>
-          
-          <div className="flex items-center gap-3 border-l border-white/20 pl-6 py-2">
-            <div className="text-right">
-              <div className="text-[14px] font-bold leading-tight">{user?.nama_lengkap || 'User'}</div>
-              <div className="text-[12px] text-white/70 font-medium">{user?.role || 'Role'}</div>
-            </div>
-            <div 
-              className="w-10 h-10 rounded-md bg-[#006B4D] flex items-center justify-center border border-white/10 hover:bg-[#00573E] cursor-pointer transition-colors group relative"
-              onClick={onLogout}
-              title="Logout"
-            >
-              <User size={18} className="text-white group-hover:hidden" strokeWidth={2.5} />
-              <LogOut size={18} className="text-white hidden group-hover:block" strokeWidth={2.5} />
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
@@ -201,6 +170,8 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
               <input 
                 type="text" 
                 placeholder="Cari Kabupaten atau Region..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D] text-gray-700 placeholder-gray-400"
               />
             </div>
@@ -221,8 +192,16 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
           <div className="w-[280px] space-y-1.5">
             <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Status Risiko</label>
             <div className="relative">
-              <select className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded text-[13px] text-gray-700 appearance-none bg-white focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]">
-                <option>Semua Status</option>
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded text-[13px] text-gray-700 appearance-none bg-white focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]"
+              >
+                <option value="Semua Status">Semua Status</option>
+                <option value="Aman">Aman</option>
+                <option value="Waspada">Waspada</option>
+                <option value="Kritis">Kritis</option>
+                <option value="Defisit">Defisit</option>
               </select>
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                 <ChevronDown size={16} strokeWidth={2} />
@@ -253,7 +232,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
                 </tr>
               </thead>
               <tbody className="text-[13px]">
-                {data.length > 0 ? data.map((row: any, index: number) => {
+                {filteredData.length > 0 ? filteredData.map((row: any, index: number) => {
                   const status = (row.status_risiko || 'aman').toLowerCase();
                   let badgeClass = '';
                   
@@ -317,7 +296,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
           {/* Pagination */}
           <div className="p-4 border-t border-gray-200 flex items-center justify-between text-[13px] text-gray-500 bg-white rounded-b-md">
             <div>
-              Menampilkan total <span className="font-bold text-gray-700">{data.length}</span> data
+              Menampilkan total <span className="font-bold text-gray-700">{filteredData.length}</span> data
             </div>
             <div className="flex items-center gap-1">
               <button className="px-3 py-1.5 border border-gray-200 rounded text-gray-500 hover:bg-gray-50 transition-colors">Seb</button>

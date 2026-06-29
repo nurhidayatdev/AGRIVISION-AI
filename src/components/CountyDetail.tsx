@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
+import { supabase } from '../utils/supabaseClient';
 import {
   ArrowLeft,
   AlertTriangle,
@@ -24,8 +26,7 @@ export default function CountyDetail({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const BACKEND_URL = `http://localhost/AGRIVISION-AI/backend_php/api_detail_kabupaten.php?id_kabupaten=${idKabupaten}`;
-  const GEMINI_URL = 'http://localhost/AGRIVISION-AI/backend_php/api_proses_gemini.php';
+  // Supabase imported above
 
   const fetchDetail = async () => {
     if (!idKabupaten) {
@@ -34,17 +35,64 @@ export default function CountyDetail({
       return;
     }
     try {
-      const res = await fetch(BACKEND_URL, { credentials: 'include' });
-      const result = await res.json();
-      if (res.ok && result.status === 'success') {
-        setData(result.data.detail);
-        setHistory(result.data.history);
-      } else {
-        setError(result.message || 'Gagal memuat detail');
-        if (res.status === 401) onLogout();
-      }
-    } catch (err) {
-      setError('Gagal terhubung ke server');
+      const { data: detailData, error: detailErr } = await supabase
+        .from('data_alokasi_pupuk')
+        .select(`
+          id_alokasi,
+          musim_tanam,
+          id_kabupaten,
+          luas_lahan,
+          status_risiko,
+          prediksi_urea,
+          kuota_urea,
+          narasi_rekomendasi,
+          cuaca_anomali,
+          master_kabupaten ( nama_kabupaten, kode_bps )
+        `)
+        .eq('id_kabupaten', idKabupaten)
+        .order('id_alokasi', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (detailErr) throw detailErr;
+
+      const detail = {
+        id: detailData.id_alokasi,
+        nama_kabupaten: detailData.master_kabupaten?.nama_kabupaten,
+        kode_bps: detailData.master_kabupaten?.kode_bps,
+        musim_tanam: detailData.musim_tanam,
+        id_kabupaten: detailData.id_kabupaten,
+        luas_lahan: detailData.luas_lahan,
+        status_risiko: detailData.status_risiko,
+        prediksi_urea: detailData.prediksi_urea,
+        kuota_urea: detailData.kuota_urea,
+        narasi_rekomendasi: detailData.narasi_rekomendasi,
+        cuaca_anomali: detailData.cuaca_anomali
+      };
+
+      const { data: historyData, error: historyErr } = await supabase
+        .from('data_alokasi_pupuk')
+        .select(`
+          last_analyzed_at,
+          narasi_rekomendasi
+        `)
+        .eq('id_kabupaten', idKabupaten)
+        .in('status_risiko', ['Kritis', 'Waspada'])
+        .order('last_analyzed_at', { ascending: false });
+
+      if (historyErr) throw historyErr;
+
+      const historyList = historyData.map((h: any) => ({
+        dikirim_pada: h.last_analyzed_at || new Date().toISOString(),
+        pesan_ai: h.narasi_rekomendasi
+      }));
+
+      setData(detail);
+      setHistory(historyList);
+
+    } catch (err: any) {
+      console.error(err);
+      setError('Gagal memuat detail dari Supabase: ' + (err?.message || JSON.stringify(err)));
     } finally {
       setIsLoading(false);
     }
@@ -101,22 +149,7 @@ export default function CountyDetail({
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
       
-      {/* Top Navbar */}
-      <nav className="bg-[#023E2D] text-white flex items-center justify-between pl-6 pr-4 h-[64px] shrink-0">
-        <div className="flex items-center h-full">
-          <div className="flex items-center mr-10 gap-3">
-             <img src={logo} alt="AgriVision AI Logo" className="w-7 h-7 object-contain" />
-            <span className="font-extrabold text-[17px] tracking-wide">AGRIVISION AI</span>
-          </div>
-
-          <div className="flex items-center h-full text-[15px] font-medium ml-4">
-            <button onClick={() => onNavigate('dashboard')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Dashboard</button>
-            <button onClick={() => onNavigate('kelola_data')} className="px-6 h-full flex items-center bg-[#006B4D] text-white font-bold tracking-wide">Kelola Data</button>
-            <button onClick={() => onNavigate('cetak_laporan')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Cetak Laporan</button>
-            <button onClick={() => onNavigate('users')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Pengguna</button>
-          </div>
-        </div>
-      </nav>
+      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center justify-between shrink-0 shadow-sm z-10">

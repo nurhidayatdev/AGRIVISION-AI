@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
 import {
   Bell,
@@ -35,43 +36,7 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
-      {/* Top Navbar */}
-      <nav className="bg-[#023E2D] text-white flex items-center justify-between pl-6 pr-4 h-[64px] shrink-0">
-        <div className="flex items-center h-full">
-          <div className="flex items-center mr-10 gap-3">
-             <img src={logo} alt="AgriVision AI Logo" className="w-7 h-7 object-contain" />
-            <span className="font-extrabold text-[17px] tracking-wide">AGRIVISION AI</span>
-          </div>
-          <div className="flex items-center h-full text-[15px] font-medium ml-4">
-            <button onClick={() => onNavigate('dashboard')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Dashboard</button>
-            <button onClick={() => onNavigate('kelola_data')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Data</button>
-            <button onClick={() => onNavigate('cetak_laporan')} className="px-6 h-full flex items-center bg-[#006B4D] text-white font-bold tracking-wide">Cetak Laporan</button>
-            <button onClick={() => onNavigate('users')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Pengguna</button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-6 h-full">
-          <span className="text-[13px] text-white/90 font-medium">Senin, 22 Juni 2026</span>
-          <button onClick={() => onNavigate('notifications')} className="relative text-white/90 hover:text-white mr-2">
-            <Bell size={18} strokeWidth={2.5} />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#0FE193] rounded-full border-2 border-[#023E2D]"></span>
-          </button>
-          
-          <div className="flex items-center gap-3 border-l border-white/20 pl-6 py-2">
-            <div className="text-right">
-              <div className="text-[14px] font-bold leading-tight">Admin</div>
-              <div className="text-[12px] text-white/70 font-medium">Sistem</div>
-            </div>
-            <div 
-              className="w-10 h-10 rounded-md bg-[#006B4D] flex items-center justify-center border border-white/10 hover:bg-[#00573E] cursor-pointer transition-colors group relative"
-              onClick={onLogout}
-            >
-              <User size={18} className="text-white group-hover:hidden" strokeWidth={2.5} />
-              <LogOut size={18} className="text-white hidden group-hover:block" strokeWidth={2.5} />
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="cetak_laporan" />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
