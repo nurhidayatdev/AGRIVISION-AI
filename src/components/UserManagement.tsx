@@ -106,6 +106,23 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validasi NIP (18 digit angka)
+    const nipRegex = /^\d{18}$/;
+    if (!nipRegex.test(nip)) {
+      alert('NIP harus terdiri dari persis 18 digit angka.');
+      return;
+    }
+
+    // Validasi Kekuatan Password (hanya untuk user baru atau jika password diubah)
+    if (!editId || password) {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+      if (!passwordRegex.test(password)) {
+        alert('Kata sandi tidak memenuhi standar keamanan. Harus minimal 8 karakter, mencakup huruf kapital, huruf kecil, angka, dan simbol khusus.');
+        return;
+      }
+    }
+
     try {
       let hash = null;
       if (password) {
