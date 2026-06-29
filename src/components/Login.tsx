@@ -1,6 +1,111 @@
+import { useState, useEffect } from 'react';
 import { IdCard, Lock, Eye, Info } from 'lucide-react';
+import logo from '../assets/logo_agrivision_ai.png';
+import bcrypt from 'bcryptjs';
+import { supabase } from '../utils/supabaseClient';
 
 export default function Login({ onLogin }: { onLogin: () => void }) {
+  const [nip, setNip] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPwdModal, setShowForgotPwdModal] = useState(false);
+
+  // Load NIP dari localStorage jika ada
+  useEffect(() => {
+    const savedNip = localStorage.getItem('agrivision_saved_nip');
+    if (savedNip) {
+      setNip(savedNip);
+      setRememberMe(true);
+    }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // Validasi NIP (18 digit angka)
+    const nipRegex = /^\d{18}$/;
+    if (!nipRegex.test(nip)) {
+      setError('Otorisasi Ditolak: NIP harus terdiri dari persis 18 digit angka.');
+      return;
+    }
+
+    // Validasi Kekuatan Password
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError('Otorisasi Ditolak: Kata sandi tidak memenuhi standar keamanan. Harus minimal 8 karakter, mencakup huruf kapital, huruf kecil, angka, dan simbol khusus.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 1. Cari user berdasarkan NIP di Supabase
+      const { data: user, error: dbError } = await supabase
+        .from('users')
+        .select(`
+          *,
+          master_kabupaten (nama_kabupaten)
+        `)
+        .eq('nip', nip)
+        .single();
+
+      if (dbError || !user) {
+        console.error("Supabase Error:", dbError);
+        setError(`Login gagal. Error DB: ${dbError?.message || 'User tidak ditemukan'}`);
+        setIsLoading(false);
+        return;
+      }
+
+      let isPasswordMatch = false;
+      
+      // Fallback jika password dari MySQL kosong (akibat error ekspor sebelumnya)
+      if (!user.password_hash || user.password_hash === '') {
+         // Bypass sementara untuk kemudahan testing prototype
+         if (password === 'Admin123!') {
+             isPasswordMatch = true;
+             // Opsional: di aplikasi nyata, Anda sebaiknya meng-update password_hash di sini
+         }
+      } else {
+         isPasswordMatch = await bcrypt.compare(password, user.password_hash);
+      }
+      
+      if (!isPasswordMatch) {
+         setError('Login gagal. Periksa kembali NIP dan Kata Sandi Anda.');
+         setIsLoading(false);
+         return;
+      }
+
+      // 3. Simpan data session ke localStorage
+      const sessionData = {
+          nip: user.nip,
+          nama_lengkap: user.nama_lengkap,
+          role: user.role,
+          id_kabupaten: user.id_kabupaten,
+          // Handle Supabase joining mapping
+          nama_kabupaten: user.master_kabupaten ? (Array.isArray(user.master_kabupaten) ? user.master_kabupaten[0]?.nama_kabupaten : (user.master_kabupaten as any)?.nama_kabupaten) : null,
+          is_provinsi_admin: user.role === 'Admin Provinsi'
+      };
+      localStorage.setItem('agrivision_session', JSON.stringify(sessionData));
+
+      if (rememberMe) {
+        localStorage.setItem('agrivision_saved_nip', nip);
+      } else {
+        localStorage.removeItem('agrivision_saved_nip');
+      }
+      
+      onLogin();
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Tidak dapat terhubung ke server Supabase.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex items-center justify-center p-4 font-sans">
       {/* Main Login Card */}
@@ -8,11 +113,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8">
           <div className="mb-4">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 2Z" fill="#024D36"/>
-              <ellipse cx="12" cy="12" rx="3.5" ry="6.5" fill="#0FE193"/>
-              <line x1="12" y1="7" x2="12" y2="17" stroke="#024D36" strokeWidth="1.5" />
-            </svg>
+            <img src={logo} alt="AgriVision AI Logo" className="w-14 h-14 object-contain mb-2 drop-shadow-md" />
           </div>
           <h1 className="text-[22px] font-extrabold text-[#113224] tracking-wide mb-2">PORTAL AGRIVISION AI</h1>
           <p className="text-[#64748B] text-[15px] text-center leading-snug">
@@ -20,8 +121,14 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-md text-center">
+            {error}
+          </div>
+        )}
+
         {/* Form Section */}
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
+        <form className="space-y-5" onSubmit={handleLogin}>
           {/* NIP Input */}
           <div className="space-y-1.5">
             <label className="block text-[13px] font-bold text-[#1E293B]">Nomor Induk Pegawai (NIP)</label>
@@ -32,9 +139,15 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
               <input
                 type="text"
                 placeholder="Masukkan NIP Anda"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-md text-[15px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D] text-gray-700 placeholder-gray-400"
+                value={nip}
+                onChange={(e) => setNip(e.target.value.replace(/\D/g, ''))}
+                required
+                className={`w-full pl-10 pr-4 py-2.5 border rounded-md text-[15px] focus:outline-none focus:ring-1 text-gray-700 placeholder-gray-400 ${nip.length > 0 && !/^\d{18}$/.test(nip) ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#006B4D] focus:ring-[#006B4D]'}`}
               />
             </div>
+            {nip.length > 0 && !/^\d{18}$/.test(nip) && (
+              <p className="text-[12px] text-red-500 mt-1 font-medium">Harus tepat 18 digit angka.</p>
+            )}
           </div>
 
           {/* Password Input */}
@@ -45,31 +158,46 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
                 <Lock size={20} strokeWidth={1.5} />
               </div>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-md text-[15px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D] text-gray-700 placeholder-gray-400 tracking-widest"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className={`w-full pl-10 pr-10 py-2.5 border rounded-md text-[15px] focus:outline-none focus:ring-1 tracking-widest text-gray-700 placeholder-gray-400 ${password.length > 0 && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password) ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#006B4D] focus:ring-[#006B4D]'}`}
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-[#94A3B8] hover:text-gray-600">
+              <div 
+                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-[#94A3B8] hover:text-gray-600"
+                onClick={() => setShowPassword(!showPassword)}
+              >
                 <Eye size={20} strokeWidth={1.5} />
               </div>
             </div>
+            {password.length > 0 && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password) && (
+              <p className="text-[12px] text-red-500 mt-1 font-medium leading-tight">Minimal 8 karakter, huruf besar, huruf kecil, angka, dan simbol (!@# dsb).</p>
+            )}
           </div>
 
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between pt-1">
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" className="w-4 h-4 border-gray-300 rounded text-[#006B4D] focus:ring-[#006B4D] accent-[#006B4D]" />
+              <input 
+                type="checkbox" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 border-gray-300 rounded text-[#006B4D] focus:ring-[#006B4D] accent-[#006B4D]" 
+              />
               <span className="text-[14px] text-[#475569]">Ingat Sesi Saya</span>
             </label>
-            <a href="#" className="text-[14px] text-[#006B4D] hover:underline font-medium">Lupa Sandi?</a>
+            <button type="button" onClick={() => setShowForgotPwdModal(true)} className="text-[14px] text-[#006B4D] hover:underline font-medium">Lupa Sandi?</button>
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-[#006B4D] hover:bg-[#00573E] text-white font-bold text-[14px] py-3 rounded-md transition-colors mt-2 tracking-wide"
+            disabled={isLoading}
+            className={`w-full bg-[#006B4D] hover:bg-[#00573E] text-white font-bold text-[14px] py-3 rounded-md transition-colors mt-2 tracking-wide ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            OTORISASI MASUK
+            {isLoading ? 'MEMPROSES...' : 'OTORISASI MASUK'}
           </button>
         </form>
 
@@ -83,6 +211,27 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           </div>
         </div>
       </div>
+
+      {/* Modal Lupa Sandi */}
+      {showForgotPwdModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-md max-w-sm w-full p-6 text-center shadow-xl">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-50 mb-4">
+              <Info className="h-6 w-6 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Lupa Kata Sandi?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Jika Anda melupakan kata sandi, silakan hubungi <b>Administrator Provinsi</b> atau <b>IT Support Dinas Pertanian</b> untuk melakukan reset kata sandi Anda secara manual.
+            </p>
+            <button
+              onClick={() => setShowForgotPwdModal(false)}
+              className="w-full bg-[#006B4D] text-white font-bold py-2 px-4 rounded hover:bg-[#00573E] transition-colors"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

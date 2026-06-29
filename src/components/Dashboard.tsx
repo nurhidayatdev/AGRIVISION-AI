@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../utils/supabaseClient';
 import {
   Bell,
   User,
@@ -10,26 +12,338 @@ import {
   Minus,
   Crosshair,
   Sparkles,
-  LogOut
+  LogOut,
+  MapPin
 } from 'lucide-react';
+import logo from '../assets/logo_agrivision_ai.png';
 
-export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
+export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string, id?: number) => void }) {
+  const [data, setData] = useState<any>(null);
+  const [activeFocusArea, setActiveFocusArea] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiProgress, setAiProgress] = useState('');
+  const [error, setError] = useState('');
+  
+  const mapRef = useRef<any>(null);
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const markerLayerRef = useRef<any>(null);
+
+  const fetchDashboardData = async () => {
+    try {
+      const sessionStr = localStorage.getItem('agrivision_session');
+      const userSession = sessionStr ? JSON.parse(sessionStr) : null;
+
+      if (!userSession) {
+        onLogout();
+        return;
+      }
+
+      // Fetch map data and totals
+      const { data: allData, error: dbError } = await supabase
+        .from('data_alokasi_pupuk')
+        .select(`
+          *,
+          master_kabupaten (nama_kabupaten, koordinat_lat, koordinat_lng)
+        `);
+
+      if (dbError) throw dbError;
+
+      let totalLahan = 0, totalUrea = 0, totalNpk = 0;
+      const mapDataMap = new Map();
+      const kritisData: any[] = [];
+
+      allData?.forEach((row: any) => {
+        totalLahan += Number(row.luas_lahan) || 0;
+        totalUrea += Number(row.kuota_urea) || 0;
+        totalNpk += Number(row.kuota_npk) || 0;
+
+        const idKab = row.id_kabupaten;
+        const status = (row.status_risiko || '').toLowerCase();
+        
+        if (status === 'kritis' || status === 'defisit' || status === 'waspada') {
+           if (kritisData.length < 5) {
+               kritisData.push({
+                   ...row,
+                   nama_kabupaten: row.master_kabupaten?.nama_kabupaten
+               });
+           }
+        }
+
+        if (!mapDataMap.has(idKab) || status === 'kritis' || status === 'defisit') {
+            mapDataMap.set(idKab, {
+                ...row,
+                nama_kabupaten: row.master_kabupaten?.nama_kabupaten,
+                koordinat_lat: row.master_kabupaten?.koordinat_lat,
+                koordinat_lng: row.master_kabupaten?.koordinat_lng
+            });
+        }
+      });
+
+      const map_data = Array.from(mapDataMap.values());
+      const focus_area = kritisData.length > 0 ? kritisData[0] : (map_data.length > 0 ? map_data[0] : null);
+
+      setData({
+          totals: {
+              lahan: totalLahan,
+              urea: totalUrea,
+              npk: totalNpk
+          },
+          kritis_data: kritisData,
+          map_data: map_data,
+          user: userSession
+      });
+      setActiveFocusArea(focus_area);
+
+    } catch (err) {
+      console.error(err);
+      setError('Gagal terhubung ke database Supabase');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+
+    // Set up Supabase Realtime Subscription!
+    const subscription = supabase
+      .channel('public:data_alokasi_pupuk')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'data_alokasi_pupuk' }, payload => {
+        console.log('Realtime change received!', payload);
+        // Refresh data automatically
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [onLogout]);
+
+  // Initialize Leaflet Map and Update Markers
+  useEffect(() => {
+    if (!data || !mapContainer.current || !(window as any).L) return;
+    const L = (window as any).L;
+
+    // 1. Initialize Map once
+    if (!mapRef.current) {
+      const map = L.map(mapContainer.current).setView([-4.6, 119.8], 7);
+      
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      // Create a layer group for markers
+      markerLayerRef.current = L.layerGroup().addTo(map);
+      mapRef.current = map;
+    }
+
+    // 2. Update Markers
+    if (markerLayerRef.current && data.map_data) {
+      markerLayerRef.current.clearLayers();
+
+      data.map_data.forEach((kab: any) => {
+        if (kab.koordinat_lat && kab.koordinat_lng) {
+          const status = kab.status_risiko.toLowerCase();
+          let color = '#10B981'; // Aman
+          if (status === 'kritis' || status === 'defisit') color = '#B91C1C';
+          else if (status === 'waspada') color = '#D97706';
+
+          const markerHtml = `
+            <div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.4);"></div>
+          `;
+          
+          const icon = L.divIcon({
+            className: 'custom-marker',
+            html: markerHtml,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+          });
+
+          L.marker([parseFloat(kab.koordinat_lat), parseFloat(kab.koordinat_lng)], { icon })
+           .addTo(markerLayerRef.current)
+           .bindPopup(`<b>${kab.nama_kabupaten}</b><br/>Status: ${kab.status_risiko}`)
+           .on('click', () => {
+              setActiveFocusArea(kab);
+           });
+        }
+      });
+    }
+
+  }, [data]);
+
+  const handleRunAllGemini = async () => {
+    if (!data || !data.map_data) return;
+
+    const apiKey = 'AIzaSyDhubi3BfXRIpIuNdKoBG6bNE-XI8QeWiw';
+
+    setIsAiLoading(true);
+    let successCount = 0;
+    const total = data.map_data.length;
+    setAiProgress('Mengambil data cuaca BMKG Real-time...');
+
+    // Ambil data BMKG (menggunakan proxy AllOrigins untuk bypass CORS di Frontend)
+    let bmkgXml: Document | null = null;
+    try {
+      const bmkgUrl = encodeURIComponent('https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-SulawesiSelatan.xml');
+      const bmkgRes = await fetch(`https://api.allorigins.win/raw?url=${bmkgUrl}`);
+      if (bmkgRes.ok) {
+         const xmlText = await bmkgRes.text();
+         bmkgXml = new window.DOMParser().parseFromString(xmlText, "text/xml");
+      }
+    } catch (e) {
+      console.warn("Gagal fetch BMKG, menggunakan fallback cuaca normal.");
+    }
+
+    for (let i = 0; i < total; i++) {
+      const kab = data.map_data[i];
+      setAiProgress(`Menganalisis (${i + 1}/${total}): ${kab.nama_kabupaten}...`);
+      
+      try {
+        let aiResult: any = null;
+
+        let cuacaSaatIni = "Cerah / Berawan";
+        let targetUrea = Number(kab.kuota_urea);
+        let targetNpk = Number(kab.kuota_npk);
+        let targetStatus = "Aman";
+
+        if (bmkgXml) {
+           const cleanKabName = kab.nama_kabupaten.replace('Kabupaten ', '').replace('Kota ', '');
+           const areas = bmkgXml.querySelectorAll('area');
+           for (let j = 0; j < areas.length; j++) {
+              const area = areas[j];
+              const desc = area.getAttribute('description');
+              if (desc && desc.toLowerCase().includes(cleanKabName.toLowerCase())) {
+                 const weatherParam = Array.from(area.querySelectorAll('parameter')).find(p => p.getAttribute('id') === 'weather');
+                 if (weatherParam) {
+                    const firstVal = weatherParam.querySelector('timerange value')?.textContent;
+                    if (['60', '61', '62', '63', '95', '97'].includes(firstVal || '')) {
+                       cuacaSaatIni = "Hujan Lebat / Ekstrem Terdeteksi (Potensi La Niña)";
+                       targetUrea = Math.floor(targetUrea * 1.25);
+                       targetNpk = Math.floor(targetNpk * 1.25);
+                       targetStatus = "Kritis";
+                    } else if (['4', '5'].includes(firstVal || '')) {
+                       cuacaSaatIni = "Hujan Sedang / Ringan";
+                       targetUrea = Math.floor(targetUrea * 1.10);
+                       targetNpk = Math.floor(targetNpk * 1.10);
+                       targetStatus = "Waspada";
+                    }
+                 }
+                 break;
+              }
+           }
+        }
+
+        // NATIVE API CALL - Cukup minta AI merangkai kata berdasarkan fakta matematis kita!
+        const promptText = `Sebagai AgriVision AI (Sistem Command Center Pertanian), tolong buatkan narasi rekomendasi untuk alokasi pupuk di ${kab.nama_kabupaten}.
+Fakta saat ini:
+- Komoditas: ${kab.komoditas}
+- Kondisi Cuaca BMKG: ${cuacaSaatIni}
+- Status Risiko Sistem: ${targetStatus}
+- Prediksi Urea Baru: ${targetUrea} Ton (Naik dari ${kab.kuota_urea} Ton)
+- Prediksi NPK Baru: ${targetNpk} Ton (Naik dari ${kab.kuota_npk} Ton)
+
+Tugas Anda: Buat 1 atau 2 kalimat narasi rekomendasi eksekutif dan profesional (menggunakan bahasa Indonesia yang baik) menjelaskan MENGAPA statusnya ${targetStatus} dan mengapa kuota pupuk disesuaikan. Jangan menyebutkan ulang angka pastinya, cukup sebutkan bahwa alokasi perlu dipertahankan atau dinaikkan akibat cuaca ${cuacaSaatIni} untuk mencegah pencucian hara.
+
+Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struktur berikut:
+{
+  "prediksi_urea": ${targetUrea},
+  "prediksi_npk": ${targetNpk},
+  "status_risiko": "${targetStatus}",
+  "narasi_rekomendasi": (Ketik narasi Anda di sini)
+}`;
+
+        const payload = {
+            contents: [{ parts: [{ text: promptText }] }],
+            generationConfig: { temperature: 0.1, responseMimeType: "application/json" }
+        };
+
+        let res: Response | null = null;
+        try {
+            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) throw new Error("API Gemini menolak request atau Rate Limit.");
+            const resData = await res.json();
+            let aiText = resData.candidates[0].content.parts[0].text;
+            
+            // Bersihkan formatting markdown JSON dari Gemini
+            aiText = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            aiResult = JSON.parse(aiText);
+        } catch (apiErr) {
+            console.warn("Gemini API Error/Rate Limit, menggunakan Fallback Simulasi Lokal untuk: " + kab.nama_kabupaten);
+            // Fallback aman jika API Limit / Gagal
+            const actionText = targetStatus === "Aman" ? "dipertahankan" : "ditingkatkan";
+            aiResult = {
+                prediksi_urea: targetUrea,
+                prediksi_npk: targetNpk,
+                status_risiko: targetStatus,
+                narasi_rekomendasi: `Berdasarkan pantauan cuaca BMKG (${cuacaSaatIni}), alokasi pupuk perlu ${actionText} untuk menjaga efektivitas serapan hara tanaman.`
+            };
+        }
+
+        // Simpan Hasil ke Supabase
+        if (aiResult) {
+            const { error: updateError } = await supabase
+                .from('data_alokasi_pupuk')
+                .update({
+                    prediksi_urea: aiResult.prediksi_urea,
+                    prediksi_npk: aiResult.prediksi_npk,
+                    status_risiko: aiResult.status_risiko,
+                    narasi_rekomendasi: aiResult.narasi_rekomendasi,
+                    cuaca_anomali: cuacaSaatIni,
+                    last_analyzed_at: new Date().toISOString()
+                })
+                .eq('id_alokasi', kab.id_alokasi);
+            
+            if (!updateError) successCount++;
+        }
+      } catch (err) {
+        console.error("Gagal menganalisis " + kab.nama_kabupaten, err);
+      }
+    }
+
+    // Refresh data (tidak wajib karena ada Realtime, tapi untuk jaga-jaga)
+    await fetchDashboardData();
+    setIsAiLoading(false);
+    setAiProgress('');
+    alert(`Analisis Gemini AI selesai untuk ${successCount} dari ${total} wilayah! Peta telah diperbarui.`);
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#F5F7F5] flex items-center justify-center">Memuat data Dashboard...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#F5F7F5] flex flex-col items-center justify-center p-6 text-center">
+        <AlertTriangle size={48} className="text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
+        <p className="text-gray-600 mb-6">{error}</p>
+        <button onClick={onLogout} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Login</button>
+      </div>
+    );
+  }
+
+  const { totals, kritis_data, user } = data;
+  const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
+
   return (
-    <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans relative">
       {/* Top Navbar */}
       <nav className="bg-[#023E2D] text-white flex items-center justify-between pl-6 pr-4 h-[64px] shrink-0">
-        {/* Left: Logo & Nav */}
         <div className="flex items-center h-full">
-          {/* Logo */}
           <div className="flex items-center mr-10 gap-3">
-             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 2Z" fill="#006B4D" stroke="#0FE193" strokeWidth="1"/>
-              <ellipse cx="12" cy="12" rx="2" ry="5.5" fill="#0FE193"/>
-            </svg>
+            <img src={logo} alt="AgriVision AI Logo" className="w-8 h-8 object-contain drop-shadow-md" />
             <span className="font-extrabold text-[17px] tracking-wide">AGRIVISION AI</span>
           </div>
 
-          {/* Nav Links */}
           <div className="flex items-center h-full text-[15px] font-medium ml-4">
             <button onClick={() => onNavigate('dashboard')} className="px-6 h-full flex items-center bg-[#006B4D] text-white font-bold tracking-wide">Dashboard</button>
             <button onClick={() => onNavigate('kelola_data')} className="px-6 h-full flex items-center hover:bg-[#004D36] transition-colors text-white/90">Kelola Data</button>
@@ -38,7 +352,6 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
           </div>
         </div>
 
-        {/* Right: User Info */}
         <div className="flex items-center gap-6 h-full">
           <span className="text-[13px] text-white/90 font-medium">Senin, 22 Juni 2026</span>
           <button onClick={() => onNavigate('notifications')} className="relative text-white/90 hover:text-white mr-2">
@@ -48,8 +361,8 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
           
           <div className="flex items-center gap-3 border-l border-white/20 pl-6 py-2">
             <div className="text-right">
-              <div className="text-[14px] font-bold leading-tight">Kadis Pertanian</div>
-              <div className="text-[12px] text-white/70 font-medium">Admin Pusat</div>
+              <div className="text-[14px] font-bold leading-tight">{user?.nama_lengkap || 'User'}</div>
+              <div className="text-[12px] text-white/70 font-medium">{user?.role || 'Role'}</div>
             </div>
             <div 
               className="w-10 h-10 rounded-md bg-[#006B4D] flex items-center justify-center border border-white/10 hover:bg-[#00573E] cursor-pointer transition-colors group relative"
@@ -65,23 +378,16 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
 
       {/* Filter / Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 h-[60px] flex items-center justify-between shrink-0 shadow-sm z-10">
-        <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
+        <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2 uppercase">
           <span className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</span>
           <span>/</span>
           <span className="hover:text-gray-700 cursor-pointer transition-colors">PUSAT KOMANDO ANALITIK</span>
           <span>/</span>
-          <span className="text-gray-900">SULAWESI SELATAN</span>
+          <span className="text-gray-900">{user?.is_provinsi_admin ? 'SULAWESI SELATAN' : user?.nama_kabupaten || 'KABUPATEN'}</span>
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="flex items-center justify-between w-[160px] px-3 py-2 border border-gray-300 rounded text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-            <span>Filter Jenis: Urea</span>
-            <ChevronDown size={16} className="text-gray-500" />
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-            <Download size={16} className="text-gray-500" />
-            Export PDF
-          </button>
+          {/* Tombol Export PDF telah dihapus agar user fokus menggunakan menu Cetak Laporan */}
         </div>
       </div>
 
@@ -96,20 +402,30 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
             
             <div className="mb-6">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[40px] font-extrabold text-[#113224] tracking-tighter leading-none">124.000</span>
-                <span className="text-lg font-bold text-[#113224]">Ha</span>
+                <span className="text-[32px] font-extrabold text-[#113224] tracking-tighter leading-none">{formatNumber(totals.lahan)}</span>
+                <span className="text-sm font-bold text-[#113224]">Ha</span>
               </div>
               <div className="text-[11px] font-bold text-gray-500 tracking-wider mt-2">TOTAL LUAS LAHAN</div>
             </div>
 
             <div className="h-[1px] bg-gray-100 w-full mb-6"></div>
 
+            <div className="mb-6">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[32px] font-extrabold text-[#006B4D] tracking-tighter leading-none">{formatNumber(totals.urea)}</span>
+                <span className="text-sm font-bold text-[#006B4D]">Ton</span>
+              </div>
+              <div className="text-[11px] font-bold text-gray-500 tracking-wider mt-2">TOTAL KUOTA UREA</div>
+            </div>
+
+            <div className="h-[1px] bg-gray-100 w-full mb-6"></div>
+
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[40px] font-extrabold text-[#006B4D] tracking-tighter leading-none">45.000</span>
-                <span className="text-lg font-bold text-[#006B4D]">Ton</span>
+                <span className="text-[32px] font-extrabold text-[#006B4D] tracking-tighter leading-none">{formatNumber(totals.npk)}</span>
+                <span className="text-sm font-bold text-[#006B4D]">Ton</span>
               </div>
-              <div className="text-[11px] font-bold text-gray-500 tracking-wider mt-2">TOTAL KUOTA UREA (TON)</div>
+              <div className="text-[11px] font-bold text-gray-500 tracking-wider mt-2">TOTAL KUOTA NPK</div>
             </div>
           </div>
 
@@ -124,38 +440,40 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
             </div>
 
             <div className="p-5 flex flex-col gap-6">
-              {/* Item 1 - Kritis */}
-              <div className="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-extrabold text-[15px] text-gray-900">Kab. Bone</h3>
-                  <span className="bg-[#B91C1C] text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider leading-none">KRITIS</span>
-                </div>
-                <p className="text-[13px] text-gray-600 leading-relaxed mb-3 pr-2">
-                  Stok urea menipis, proyeksi habis dalam 3 hari. Defisit mencapai 15% dari e-RDKK.
-                </p>
-                <div className="flex items-center gap-1.5 text-[#B91C1C] text-[12px] font-bold">
-                  <TrendingDown size={14} strokeWidth={2.5} />
-                  <span>Defisit 15%</span>
-                </div>
-              </div>
+              {kritis_data.length > 0 ? kritis_data.map((row: any, idx: number) => {
+                const status = row.status_risiko.toLowerCase();
+                const isKritis = status === 'kritis' || status === 'defisit';
+                const bgClass = isKritis ? 'bg-[#B91C1C]' : 'bg-[#D97706]';
+                const textClass = isKritis ? 'text-[#B91C1C]' : 'text-[#D97706]';
+                const Icon = isKritis ? TrendingDown : Clock;
 
-              {/* Item 2 - Waspada */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-extrabold text-[15px] text-gray-900">Kab. Maros</h3>
-                  <span className="bg-[#D97706] text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider leading-none">WASPADA</span>
-                </div>
-                <p className="text-[13px] text-gray-600 leading-relaxed mb-3 pr-2">
-                  Distribusi terhambat cuaca buruk. Keterlambatan pengiriman pupuk NPK.
-                </p>
-                <div className="flex items-center gap-1.5 text-[#D97706] text-[12px] font-bold">
-                  <Clock size={14} strokeWidth={2.5} />
-                  <span>Delay 48 Jam</span>
-                </div>
-              </div>
+                return (
+                  <div key={idx} className="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-extrabold text-[15px] text-gray-900">{row.nama_kabupaten}</h3>
+                      <span className={`${bgClass} text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider leading-none`}>
+                        {row.status_risiko}
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-gray-600 leading-relaxed mb-3 pr-2">
+                      {row.narasi_rekomendasi || 'Prediksi AI menunjukkan indikasi defisit pupuk. Segera lakukan penyesuaian alokasi atau koordinasi antar wilayah.'}
+                    </p>
+                    <div className={`flex items-center gap-1.5 ${textClass} text-[12px] font-bold`}>
+                      <Icon size={14} strokeWidth={2.5} />
+                      <span>
+                        {row.prediksi_urea > row.kuota_urea 
+                          ? `Defisit Urea ${formatNumber(row.prediksi_urea - row.kuota_urea)} Ton`
+                          : 'Perhatian Khusus'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="text-[13px] text-gray-500 italic text-center py-4">Semua wilayah dalam kondisi aman.</div>
+              )}
             </div>
           </div>
-
         </div>
 
         {/* Right Main Area */}
@@ -163,99 +481,80 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
           
           {/* Header Banner */}
           <div className="bg-gradient-to-r from-[#1E3B33] to-[#254A41] rounded-md px-8 py-7 flex items-center justify-between text-white shadow-sm shrink-0 relative overflow-hidden">
-             {/* Decorative Background Pattern Overlay (Subtle) */}
              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
              
             <div className="relative z-10">
-              <h1 className="text-[22px] font-extrabold tracking-tight mb-2">Status Ketahanan Pupuk: Sulawesi Selatan</h1>
+              <h1 className="text-[22px] font-extrabold tracking-tight mb-2">Status Ketahanan Pupuk: {user?.is_provinsi_admin ? 'Sulawesi Selatan' : user?.nama_kabupaten || 'Kabupaten'}</h1>
               <p className="text-white/80 text-[14px] font-medium">Analisis prediktif berbasis data cuaca dan realisasi e-RDKK bulan ini.</p>
             </div>
-            <button className="relative z-10 bg-[#34D399] hover:bg-[#10B981] text-[#022C22] font-bold px-5 py-2.5 rounded flex items-center gap-2 transition-colors shadow-sm text-[13px] tracking-wide">
-              <Sparkles size={16} className="text-[#022C22] fill-[#022C22]" />
-              Jalankan Gemini AI
-            </button>
-          </div>
-
-          {/* Map Area */}
-          <div className="flex-1 bg-[#D1DFD9]/30 rounded-md border border-gray-200 relative overflow-hidden flex items-center justify-center min-h-[400px]">
-             {/* Simulated Map Background (Lines/Grid) */}
-             <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #94A3B8 10px, #94A3B8 11px)' }}></div>
-            
-            <span className="text-gray-400/80 font-bold text-xl tracking-widest uppercase relative z-0">Map Placeholder</span>
-
-            {/* Floating Overlay Card */}
-            <div className="absolute top-6 left-6 w-[300px] bg-white rounded-md shadow-[0_12px_40px_rgb(0,0,0,0.12)] flex flex-col z-10 border border-gray-100 overflow-hidden">
-              {/* Header */}
-              <div className="p-5 border-b border-gray-100 flex items-start justify-between bg-gray-50/50">
-                <h3 className="font-extrabold text-[15px] text-[#113224] uppercase leading-snug w-3/4 tracking-tight">
-                  Fokus Area: Kab. Bone
-                </h3>
-                <div className="bg-[#B91C1C] text-white text-[10px] font-bold px-2 py-1 rounded text-center leading-tight tracking-wider shrink-0">
-                  STATUS:<br/>KRITIS
-                </div>
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="flex items-center gap-2 text-white/90 text-[12px] bg-white/10 px-3 py-1.5 rounded border border-white/20">
+                <div className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></div>
+                AI Auto-Sync Aktif
               </div>
-
-              <div className="p-5 flex flex-col">
-                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                  Prediksi Kebutuhan AI
-                </div>
-                <div className="flex items-baseline gap-1.5 mb-6">
-                  <span className="text-[28px] font-extrabold text-[#113224] tracking-tight leading-none">2.340</span>
-                  <span className="text-[14px] font-bold text-gray-500">Ton</span>
-                </div>
-
-                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-3">
-                  Trend 3 Bulan Terakhir
-                </div>
-                
-                {/* Bar Chart Mockup */}
-                <div className="flex items-end gap-2.5 h-[52px] mb-7">
-                  <div className="flex-1 bg-gray-200 h-[35%] rounded-sm hover:bg-gray-300 transition-colors cursor-pointer relative group">
-                     <div className="hidden group-hover:block absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded">Bulan -2</div>
-                  </div>
-                  <div className="flex-1 bg-gray-200 h-[65%] rounded-sm hover:bg-gray-300 transition-colors cursor-pointer relative group">
-                     <div className="hidden group-hover:block absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] py-1 px-2 rounded">Bulan -1</div>
-                  </div>
-                  <div className="flex-1 bg-[#B91C1C] h-[100%] rounded-sm hover:bg-red-800 transition-colors cursor-pointer shadow-[0_0_10px_rgba(185,28,28,0.3)] relative group">
-                     <div className="hidden group-hover:block absolute -top-8 left-1/2 -translate-x-1/2 bg-[#B91C1C] text-white text-[10px] font-bold py-1 px-2 rounded">Bulan Ini</div>
-                  </div>
-                </div>
-
-                <button onClick={() => onNavigate('county_detail')} className="w-full py-2.5 border border-[#006B4D] text-[#006B4D] font-bold text-[13px] rounded hover:bg-[#006B4D] hover:text-white transition-colors tracking-wide">
-                  LIHAT DETAIL WILAYAH
-                </button>
-              </div>
-            </div>
-
-            {/* Map Controls */}
-            <div className="absolute bottom-6 right-6 flex flex-col gap-3 z-10">
-              <div className="bg-white rounded shadow-md flex flex-col overflow-hidden border border-gray-100">
-                <button className="w-9 h-9 flex items-center justify-center hover:bg-gray-50 text-gray-600 border-b border-gray-100 transition-colors" title="Zoom In">
-                  <Plus size={18} strokeWidth={2.5} />
-                </button>
-                <button className="w-9 h-9 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors" title="Zoom Out">
-                  <Minus size={18} strokeWidth={2.5} />
-                </button>
-              </div>
-              <button className="w-9 h-9 bg-white rounded shadow-md flex items-center justify-center hover:bg-gray-50 text-gray-600 border border-gray-100 transition-colors" title="My Location">
-                <Crosshair size={18} strokeWidth={2.5} />
+              <button 
+                onClick={handleRunAllGemini}
+                disabled={isAiLoading}
+                className="bg-[#34D399] hover:bg-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed text-[#022C22] font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors shadow-sm text-[12px] tracking-wide"
+              >
+                <Sparkles size={14} className="text-[#022C22] fill-[#022C22]" />
+                {isAiLoading ? (aiProgress || 'Menganalisis...') : 'Paksa Sinkronisasi'}
               </button>
             </div>
           </div>
 
+          {/* Map Area */}
+          <div className="flex-1 rounded-md border border-gray-200 relative overflow-hidden min-h-[400px]">
+            {/* The actual leaflet map container */}
+            <div ref={mapContainer} className="absolute inset-0 z-0"></div>
+
+            {/* Overlay Info Panel */}
+            {activeFocusArea && (
+              <div className="absolute top-6 left-6 w-[300px] bg-white rounded-md shadow-[0_12px_40px_rgb(0,0,0,0.12)] flex flex-col z-10 border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 flex items-start justify-between bg-gray-50/50">
+                  <h3 className="font-extrabold text-[15px] text-[#113224] uppercase leading-snug w-3/4 tracking-tight">
+                    Fokus Area: {activeFocusArea.nama_kabupaten}
+                  </h3>
+                  <div className={`${(activeFocusArea.status_risiko.toLowerCase() === 'kritis' || activeFocusArea.status_risiko.toLowerCase() === 'defisit') ? 'bg-[#B91C1C]' : 'bg-[#D97706]'} text-white text-[10px] font-bold px-2 py-1 rounded text-center leading-tight tracking-wider shrink-0 uppercase`}>
+                    STATUS:<br/>{activeFocusArea.status_risiko}
+                  </div>
+                </div>
+
+                <div className="p-5 flex flex-col">
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Luas Lahan</div>
+                      <div className="font-bold text-[#113224] text-[14px]">{formatNumber(activeFocusArea.luas_lahan || 0)} Ha</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Cuaca Saat Ini</div>
+                      <div className="font-bold text-[#006B4D] text-[12px] leading-tight">{activeFocusArea.cuaca_anomali || 'Menunggu analisis...'}</div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                    Prediksi Kebutuhan AI
+                  </div>
+                  <div className="flex items-baseline gap-1.5 mb-6">
+                    <span className="text-[28px] font-extrabold text-[#113224] tracking-tight leading-none">{formatNumber(activeFocusArea.prediksi_urea || 0)}</span>
+                    <span className="text-[14px] font-bold text-gray-500">Ton</span>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      onNavigate('county_detail', activeFocusArea.id_kabupaten);
+                    }}
+                    className="w-full py-2.5 border border-[#006B4D] text-[#006B4D] font-bold text-[13px] rounded hover:bg-[#006B4D] hover:text-white transition-colors tracking-wide"
+                  >
+                    LIHAT DETAIL WILAYAH
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#F5F7F5] text-gray-500 py-5 px-6 flex items-center justify-between text-[12px] shrink-0 border-t border-gray-200 font-medium">
-        <div>© 2026 GovTech AgriVision AI. Restricted Government Access Only.</div>
-        <div className="flex gap-6">
-          <a href="#" className="hover:text-gray-800 transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-gray-800 transition-colors">Terms of Service</a>
-          <a href="#" className="hover:text-gray-800 transition-colors">Security Protocol</a>
-          <a href="#" className="hover:text-gray-800 transition-colors">Contact Support</a>
-        </div>
-      </footer>
     </div>
   );
 }

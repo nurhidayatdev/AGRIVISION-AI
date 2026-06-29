@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import logo from '../assets/logo_agrivision_ai.png';
+import { supabase } from '../utils/supabaseClient';
 import {
   Bell,
   User,
@@ -8,10 +11,113 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
-  LogOut
+  LogOut,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function DataManagement({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
+  const [data, setData] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchData = async () => {
+    try {
+      const sessionStr = localStorage.getItem('agrivision_session');
+      const userSession = sessionStr ? JSON.parse(sessionStr) : null;
+
+      if (!userSession) {
+        onLogout();
+        return;
+      }
+      setUser(userSession);
+
+      const { data: dbData, error: dbError } = await supabase
+        .from('data_alokasi_pupuk')
+        .select(`
+          *,
+          master_kabupaten (nama_kabupaten, kode_bps)
+        `);
+
+      if (dbError) throw dbError;
+
+      // Map joined data to match the table structure expected by the component
+      const formattedData = (dbData || []).map(row => ({
+          ...row,
+          nama_kabupaten: row.master_kabupaten?.nama_kabupaten,
+          kode_bps: row.master_kabupaten?.kode_bps
+      }));
+
+      // Aggregate duplicate commodities by kabupaten (summing values)
+      const aggMap = new Map();
+      formattedData.forEach((row: any) => {
+         const id = row.id_kabupaten;
+         if (!aggMap.has(id)) {
+            aggMap.set(id, { ...row });
+         } else {
+            const existing = aggMap.get(id);
+            existing.luas_lahan = Number(existing.luas_lahan || 0) + Number(row.luas_lahan || 0);
+            existing.kuota_urea = Number(existing.kuota_urea || 0) + Number(row.kuota_urea || 0);
+            existing.kuota_npk = Number(existing.kuota_npk || 0) + Number(row.kuota_npk || 0);
+            existing.prediksi_urea = Number(existing.prediksi_urea || 0) + Number(row.prediksi_urea || 0);
+            existing.prediksi_npk = Number(existing.prediksi_npk || 0) + Number(row.prediksi_npk || 0);
+            
+            const existingStatus = (existing.status_risiko || '').toLowerCase();
+            const newStatus = (row.status_risiko || '').toLowerCase();
+            if (newStatus === 'kritis' || (newStatus === 'defisit' && existingStatus !== 'kritis') || (newStatus === 'waspada' && existingStatus === 'aman')) {
+                existing.status_risiko = row.status_risiko;
+            }
+         }
+      });
+
+      setData(Array.from(aggMap.values()));
+    } catch (err) {
+      console.error(err);
+      setError('Gagal memuat data dari Supabase');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    // Supabase Real-time listener
+    const subscription = supabase
+      .channel('public:data_alokasi_pupuk_mgmt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'data_alokasi_pupuk' }, payload => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [onLogout]);
+
+  // Helper for formatting numbers
+  const formatNumber = (num: number, decimals: number = 0) => {
+    return new Intl.NumberFormat('id-ID', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    }).format(num);
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#F5F7F5] flex items-center justify-center">Memuat data...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#F5F7F5] flex flex-col items-center justify-center p-6 text-center">
+        <AlertTriangle size={48} className="text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
+        <p className="text-gray-600 mb-6">{error}</p>
+        <button onClick={onLogout} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Login</button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
       {/* Top Navbar */}
@@ -20,10 +126,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
         <div className="flex items-center h-full">
           {/* Logo */}
           <div className="flex items-center mr-10 gap-3">
-             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 2Z" fill="#006B4D" stroke="#0FE193" strokeWidth="1"/>
-              <ellipse cx="12" cy="12" rx="2" ry="5.5" fill="#0FE193"/>
-            </svg>
+             <img src={logo} alt="AgriVision AI Logo" className="w-7 h-7 object-contain" />
             <span className="font-extrabold text-[17px] tracking-wide">AGRIVISION AI</span>
           </div>
 
@@ -39,15 +142,15 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
         {/* Right: User Info */}
         <div className="flex items-center gap-6 h-full">
           <span className="text-[13px] text-white/90 font-medium">Senin, 22 Juni 2026</span>
-          <button className="relative text-white/90 hover:text-white mr-2">
+          <button onClick={() => onNavigate('notifications')} className="relative text-white/90 hover:text-white mr-2">
             <Bell size={18} strokeWidth={2.5} />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#0FE193] rounded-full border-2 border-[#023E2D]"></span>
           </button>
           
           <div className="flex items-center gap-3 border-l border-white/20 pl-6 py-2">
             <div className="text-right">
-              <div className="text-[14px] font-bold leading-tight">Kadis Pertanian</div>
-              <div className="text-[12px] text-white/70 font-medium">Admin Pusat</div>
+              <div className="text-[14px] font-bold leading-tight">{user?.nama_lengkap || 'User'}</div>
+              <div className="text-[12px] text-white/70 font-medium">{user?.role || 'Role'}</div>
             </div>
             <div 
               className="w-10 h-10 rounded-md bg-[#006B4D] flex items-center justify-center border border-white/10 hover:bg-[#00573E] cursor-pointer transition-colors group relative"
@@ -150,91 +253,63 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
                 </tr>
               </thead>
               <tbody className="text-[13px]">
-                {/* Row 1 */}
-                <tr className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 text-gray-400 font-mono text-[12px]">73.08</td>
-                  <td className="py-4 px-6 font-bold text-gray-900">Kab. Bone</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">124,500.00</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">45,200</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#DC2626] font-mono flex items-center justify-end gap-1.5">
-                    52,100 <TrendingUp size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">30,000</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#059669] font-mono flex items-center justify-end gap-1.5">
-                    28,000 <TrendingDown size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-red-50 text-[#DC2626] border border-red-200 text-[10px] font-bold uppercase tracking-wider w-[68px]">KRITIS</span>
-                  </td>
-                </tr>
-                {/* Row 2 */}
-                <tr className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors bg-[#FAFAFA]">
-                  <td className="py-4 px-6 text-gray-400 font-mono text-[12px]">73.09</td>
-                  <td className="py-4 px-6 font-bold text-gray-900">Kab. Maros</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">86,200.50</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">32,100</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#059669] font-mono flex items-center justify-end gap-1.5">
-                    31,800 <TrendingDown size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">20,000</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#D97706] font-mono flex items-center justify-end gap-1.5">
-                    22,000 <TrendingUp size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-emerald-50 text-[#059669] border border-emerald-200 text-[10px] font-bold uppercase tracking-wider w-[68px]">AMAN</span>
-                  </td>
-                </tr>
-                {/* Row 3 */}
-                <tr className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 text-gray-400 font-mono text-[12px]">73.06</td>
-                  <td className="py-4 px-6 font-bold text-gray-900">Kab. Gowa</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">92,450.00</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">35,400</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#D97706] font-mono flex items-center justify-end gap-1.5">
-                    38,200 <TrendingUp size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">25,000</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#D97706] font-mono flex items-center justify-end gap-1.5">
-                    26,500 <TrendingUp size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-amber-50 text-[#D97706] border border-amber-200 text-[10px] font-bold uppercase tracking-wider w-[68px]">WASPADA</span>
-                  </td>
-                </tr>
-                {/* Row 4 */}
-                <tr className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors bg-[#FAFAFA]">
-                  <td className="py-4 px-6 text-gray-400 font-mono text-[12px]">73.14</td>
-                  <td className="py-4 px-6 font-bold text-gray-900">Kab. Sidrap</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">110,800.00</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">41,500</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#059669] font-mono flex items-center justify-end gap-1.5">
-                    41,200 <ArrowRight size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">35,000</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#059669] font-mono flex items-center justify-end gap-1.5">
-                    34,500 <ArrowRight size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-emerald-50 text-[#059669] border border-emerald-200 text-[10px] font-bold uppercase tracking-wider w-[68px]">AMAN</span>
-                  </td>
-                </tr>
-                {/* Row 5 */}
-                <tr className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 text-gray-400 font-mono text-[12px]">73.15</td>
-                  <td className="py-4 px-6 font-bold text-gray-900">Kab. Pinrang</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">95,600.25</td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">38,900</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#DC2626] font-mono flex items-center justify-end gap-1.5">
-                    44,500 <TrendingUp size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">28,000</td>
-                  <td className="py-4 px-6 text-right font-bold text-[#DC2626] font-mono flex items-center justify-end gap-1.5">
-                    31,000 <TrendingUp size={14} strokeWidth={2.5} />
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-red-50 text-[#DC2626] border border-red-200 text-[10px] font-bold uppercase tracking-wider w-[68px]">KRITIS</span>
-                  </td>
-                </tr>
+                {data.length > 0 ? data.map((row: any, index: number) => {
+                  const status = (row.status_risiko || 'aman').toLowerCase();
+                  let badgeClass = '';
+                  
+                  switch(status) {
+                    case 'aman':
+                      badgeClass = 'bg-emerald-50 text-[#059669] border-emerald-200';
+                      break;
+                    case 'waspada':
+                      badgeClass = 'bg-amber-50 text-[#D97706] border-amber-200';
+                      break;
+                    case 'kritis':
+                    case 'defisit':
+                      badgeClass = 'bg-red-50 text-[#DC2626] border-red-200';
+                      break;
+                    default:
+                      badgeClass = 'bg-gray-50 text-gray-600 border-gray-200';
+                  }
+
+                  const ureaTrendIcon = row.prediksi_urea > row.kuota_urea 
+                    ? <TrendingUp size={14} strokeWidth={2.5} className="text-[#DC2626]"/> 
+                    : (row.prediksi_urea < row.kuota_urea ? <TrendingDown size={14} strokeWidth={2.5} className="text-[#059669]"/> : <ArrowRight size={14} strokeWidth={2.5} className="text-gray-500"/>);
+                  
+                  const npkTrendIcon = row.prediksi_npk > row.kuota_npk 
+                    ? <TrendingUp size={14} strokeWidth={2.5} className="text-[#D97706]"/> 
+                    : (row.prediksi_npk < row.kuota_npk ? <TrendingDown size={14} strokeWidth={2.5} className="text-[#059669]"/> : <ArrowRight size={14} strokeWidth={2.5} className="text-gray-500"/>);
+
+                  const ureaColor = row.prediksi_urea > row.kuota_urea ? 'text-[#DC2626]' : (row.prediksi_urea < row.kuota_urea ? 'text-[#059669]' : 'text-gray-700');
+                  const npkColor = row.prediksi_npk > row.kuota_npk ? 'text-[#D97706]' : (row.prediksi_npk < row.kuota_npk ? 'text-[#059669]' : 'text-gray-700');
+
+                  const bgClass = index % 2 === 1 ? 'bg-[#FAFAFA]' : '';
+
+                  return (
+                    <tr key={row.id || index} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${bgClass}`}>
+                      <td className="py-4 px-6 text-gray-400 font-mono text-[12px]">{row.kode_bps || '-'}</td>
+                      <td className="py-4 px-6 font-bold text-gray-900">{row.nama_kabupaten}</td>
+                      <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">{formatNumber(row.luas_lahan, 2)}</td>
+                      <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">{formatNumber(row.kuota_urea)}</td>
+                      <td className={`py-4 px-6 text-right font-bold ${ureaColor} font-mono flex items-center justify-end gap-1.5`}>
+                        {formatNumber(row.prediksi_urea)} {ureaTrendIcon}
+                      </td>
+                      <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">{formatNumber(row.kuota_npk)}</td>
+                      <td className={`py-4 px-6 text-right font-bold ${npkColor} font-mono flex items-center justify-end gap-1.5`}>
+                        {formatNumber(row.prediksi_npk)} {npkTrendIcon}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center justify-center px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider w-[68px] ${badgeClass}`}>
+                          {row.status_risiko || 'AMAN'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                }) : (
+                  <tr>
+                    <td colSpan={8} className="py-10 px-6 text-center text-gray-500 font-medium">Tidak ada data ditemukan.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -242,14 +317,11 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
           {/* Pagination */}
           <div className="p-4 border-t border-gray-200 flex items-center justify-between text-[13px] text-gray-500 bg-white rounded-b-md">
             <div>
-              Menampilkan 1 hingga 5 dari 24 Kabupaten
+              Menampilkan total <span className="font-bold text-gray-700">{data.length}</span> data
             </div>
             <div className="flex items-center gap-1">
               <button className="px-3 py-1.5 border border-gray-200 rounded text-gray-500 hover:bg-gray-50 transition-colors">Seb</button>
               <button className="px-3 py-1.5 border border-[#10B981] bg-[#ECFDF5] text-[#059669] font-bold rounded">1</button>
-              <button className="px-3 py-1.5 border border-gray-200 rounded text-gray-500 hover:bg-gray-50 transition-colors">2</button>
-              <button className="px-3 py-1.5 border border-gray-200 rounded text-gray-500 hover:bg-gray-50 transition-colors">3</button>
-              <span className="px-2">...</span>
               <button className="px-3 py-1.5 border border-gray-200 rounded text-gray-500 hover:bg-gray-50 transition-colors">Lanjut</button>
             </div>
           </div>
