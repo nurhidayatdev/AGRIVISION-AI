@@ -47,7 +47,7 @@ export default function Navbar({ onNavigate, onLogout, activePage }: NavbarProps
         </span>
         <button onClick={() => onNavigate('notifications')} className="relative text-white/90 hover:text-white mr-2 cursor-pointer transition-colors">
           <Bell size={18} strokeWidth={2.5} />
-          <span className="absolute --top-1 -right-1 w-2.5 h-2.5 bg-[#0FE193] rounded-full border-2 border-[#023E2D]"></span>
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#0FE193] rounded-full border-2 border-[#023E2D]"></span>
         </button>
         
         <div className="flex items-center gap-3 border-l border-white/20 pl-6 py-2">

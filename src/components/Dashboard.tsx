@@ -40,13 +40,18 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
         return;
       }
 
-      // Fetch map data and totals
-      const { data: allData, error: dbError } = await supabase
+      let query = supabase
         .from('data_alokasi_pupuk')
         .select(`
           *,
           master_kabupaten (nama_kabupaten, koordinat_lat, koordinat_lng)
         `);
+
+      if (!userSession.is_provinsi_admin && userSession.id_kabupaten) {
+        query = query.eq('id_kabupaten', userSession.id_kabupaten);
+      }
+
+      const { data: allData, error: dbError } = await query;
 
       if (dbError) throw dbError;
 
@@ -62,11 +67,14 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
         const idKab = row.id_kabupaten;
         const status = (row.status_risiko || '').toLowerCase();
         
+        // Safely extract master_kabupaten in case Supabase returns an array
+        const masterKab = Array.isArray(row.master_kabupaten) ? row.master_kabupaten[0] : row.master_kabupaten;
+        
         if (status === 'kritis' || status === 'defisit' || status === 'waspada') {
            if (kritisData.length < 5) {
                kritisData.push({
                    ...row,
-                   nama_kabupaten: row.master_kabupaten?.nama_kabupaten
+                   nama_kabupaten: masterKab?.nama_kabupaten
                });
            }
         }
@@ -74,9 +82,9 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
         if (!mapDataMap.has(idKab) || status === 'kritis' || status === 'defisit') {
             mapDataMap.set(idKab, {
                 ...row,
-                nama_kabupaten: row.master_kabupaten?.nama_kabupaten,
-                koordinat_lat: row.master_kabupaten?.koordinat_lat,
-                koordinat_lng: row.master_kabupaten?.koordinat_lng
+                nama_kabupaten: masterKab?.nama_kabupaten,
+                koordinat_lat: masterKab?.koordinat_lat,
+                koordinat_lng: masterKab?.koordinat_lng
             });
         }
       });
@@ -199,9 +207,20 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
       console.warn("Gagal fetch BMKG, menggunakan fallback cuaca normal.");
     }
 
-    for (let i = 0; i < total; i++) {
-      const kab = data.map_data[i];
-      setAiProgress(`Menganalisis (${i + 1}/${total}): ${kab.nama_kabupaten}...`);
+    // Ambil semua data alokasi untuk dianalisis
+    const { data: allData, error: dbError } = await supabase.from('data_alokasi_pupuk').select(`*, master_kabupaten(nama_kabupaten)`);
+    if (dbError || !allData) {
+       alert('Gagal mengambil data alokasi untuk dianalisis.');
+       setIsAiLoading(false);
+       return;
+    }
+
+    const totalToAnalyze = allData.length;
+
+    for (let i = 0; i < totalToAnalyze; i++) {
+      const kab = allData[i];
+      const namaKab = kab.master_kabupaten?.nama_kabupaten || 'Wilayah Tidak Diketahui';
+      setAiProgress(`Menganalisis (${i + 1}/${totalToAnalyze}): ${namaKab}...`);
       
       try {
         let aiResult: any = null;
@@ -220,18 +239,24 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
               if (desc && desc.toLowerCase().includes(cleanKabName.toLowerCase())) {
                  const weatherParam = Array.from(area.querySelectorAll('parameter')).find(p => p.getAttribute('id') === 'weather');
                  if (weatherParam) {
-                    const firstVal = weatherParam.querySelector('timerange value')?.textContent;
-                    if (['60', '61', '62', '63', '95', '97'].includes(firstVal || '')) {
-                       cuacaSaatIni = "Hujan Lebat / Ekstrem Terdeteksi (Potensi La Niña)";
-                       targetUrea = Math.floor(targetUrea * 1.25);
-                       targetNpk = Math.floor(targetNpk * 1.25);
-                       targetStatus = "Kritis";
-                    } else if (['4', '5'].includes(firstVal || '')) {
-                       cuacaSaatIni = "Hujan Sedang / Ringan";
-                       targetUrea = Math.floor(targetUrea * 1.10);
-                       targetNpk = Math.floor(targetNpk * 1.10);
-                       targetStatus = "Waspada";
-                    }
+                     const firstVal = weatherParam.querySelector('timerange value')?.textContent;
+                     if (['60', '61', '62', '63', '95', '97'].includes(firstVal || '')) {
+                        cuacaSaatIni = "Hujan Lebat / Ekstrem Terdeteksi (Potensi La Niña)";
+                        targetUrea = Math.floor(targetUrea * 1.25);
+                        targetNpk = Math.floor(targetNpk * 1.25);
+                        targetStatus = "Kritis";
+                     } else if (['4', '5'].includes(firstVal || '')) {
+                        cuacaSaatIni = "Hujan Sedang / Berawan Tebal";
+                        targetUrea = Math.floor(targetUrea * 1.10);
+                        targetNpk = Math.floor(targetNpk * 1.10);
+                        targetStatus = "Waspada";
+                     } else if (firstVal === '0') {
+                        cuacaSaatIni = "Cerah Terik";
+                     } else if (['1', '2'].includes(firstVal || '')) {
+                        cuacaSaatIni = "Cerah Berawan";
+                     } else if (firstVal === '3') {
+                        cuacaSaatIni = "Berawan";
+                     }
                  }
                  break;
               }
@@ -239,15 +264,16 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
         }
 
         // NATIVE API CALL - Cukup minta AI merangkai kata berdasarkan fakta matematis kita!
-        const promptText = `Sebagai AgriVision AI (Sistem Command Center Pertanian), tolong buatkan narasi rekomendasi untuk alokasi pupuk di ${kab.nama_kabupaten}.
+        const isNaik = targetUrea > kab.kuota_urea;
+        const promptText = `Sebagai AgriVision AI (Sistem Command Center Pertanian), tolong buatkan narasi rekomendasi untuk alokasi pupuk di ${namaKab}.
 Fakta saat ini:
 - Komoditas: ${kab.komoditas}
 - Kondisi Cuaca BMKG: ${cuacaSaatIni}
 - Status Risiko Sistem: ${targetStatus}
-- Prediksi Urea Baru: ${targetUrea} Ton (Naik dari ${kab.kuota_urea} Ton)
-- Prediksi NPK Baru: ${targetNpk} Ton (Naik dari ${kab.kuota_npk} Ton)
+- Prediksi Urea Baru: ${targetUrea} Ton ${isNaik ? `(Naik dari ${kab.kuota_urea} Ton)` : '(Sama dengan kuota)'}
+- Prediksi NPK Baru: ${targetNpk} Ton ${isNaik ? `(Naik dari ${kab.kuota_npk} Ton)` : '(Sama dengan kuota)'}
 
-Tugas Anda: Buat 1 atau 2 kalimat narasi rekomendasi eksekutif dan profesional (menggunakan bahasa Indonesia yang baik) menjelaskan MENGAPA statusnya ${targetStatus} dan mengapa kuota pupuk disesuaikan. Jangan menyebutkan ulang angka pastinya, cukup sebutkan bahwa alokasi perlu dipertahankan atau dinaikkan akibat cuaca ${cuacaSaatIni} untuk mencegah pencucian hara.
+Tugas Anda: Buat 1 atau 2 kalimat narasi rekomendasi eksekutif dan profesional (menggunakan bahasa Indonesia yang baik) menjelaskan MENGAPA statusnya ${targetStatus} dan mengapa kuota pupuk disesuaikan atau dipertahankan. Jangan menyebutkan ulang angka pastinya, cukup sebutkan implikasi cuaca ${cuacaSaatIni} terhadap serapan hara tanaman.
 
 Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struktur berikut:
 {
@@ -426,7 +452,7 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
                       <span>
                         {row.prediksi_urea > row.kuota_urea 
                           ? `Defisit Urea ${formatNumber(row.prediksi_urea - row.kuota_urea)} Ton`
-                          : 'Perhatian Khusus'
+                          : 'Kondisi Stabil'
                         }
                       </span>
                     </div>
@@ -461,7 +487,7 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
                 className="bg-[#34D399] hover:bg-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed text-[#022C22] font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors shadow-sm text-[12px] tracking-wide"
               >
                 <Sparkles size={14} className="text-[#022C22] fill-[#022C22]" />
-                {isAiLoading ? (aiProgress || 'Menganalisis...') : 'Paksa Sinkronisasi'}
+                {isAiLoading ? (aiProgress || 'Menganalisis...') : 'Jalankan Gemini AI'}
               </button>
             </div>
           </div>
