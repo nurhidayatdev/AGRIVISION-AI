@@ -331,7 +331,7 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-[999] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl w-full max-w-[500px] max-h-[90vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-[18px] font-extrabold text-[#113224] tracking-tight">{editId ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}</h2>

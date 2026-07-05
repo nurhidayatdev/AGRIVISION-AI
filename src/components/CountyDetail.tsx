@@ -254,16 +254,13 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
       <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
 
       {/* Breadcrumb Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center justify-between shrink-0 shadow-sm z-10">
-        <div className="flex items-center text-[13px] font-medium text-gray-500 gap-2">
-            <button onClick={() => onNavigate('dashboard')} className="mr-2 text-gray-700 hover:text-gray-900 transition-colors">
-                <ArrowLeft size={18} strokeWidth={2.5} />
-            </button>
-            <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-900 cursor-pointer transition-colors">Beranda</button>
-            <span className="text-gray-400">›</span>
-            <button onClick={() => onNavigate('kelola_data')} className="hover:text-gray-900 cursor-pointer transition-colors">Kelola Data</button>
-            <span className="text-gray-400">›</span>
-            <span className="text-[#113224] font-bold">{data.nama_kabupaten}</span>
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
+        <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
+            <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+            <span>/</span>
+            <button onClick={() => onNavigate('kelola_data')} className="hover:text-gray-700 cursor-pointer transition-colors">KELOLA DATA</button>
+            <span>/</span>
+            <span className="text-gray-900">{data.nama_kabupaten}</span>
         </div>
         <div className="flex items-center gap-5 text-[12px] font-bold text-gray-600">
             <a href={`http://localhost/AGRIVISION-AI/backend_php/proses_cetak_pdf.php?musim_tanam=${data.musim_tanam}&id_kabupaten=${data.id_kabupaten}&sertakan_ai=true`} className="flex items-center gap-1.5 hover:text-gray-900 transition-colors">

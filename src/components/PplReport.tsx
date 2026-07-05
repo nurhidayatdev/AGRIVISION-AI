@@ -106,6 +106,15 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
         </div>
       </nav>
 
+      {/* Breadcrumb Bar */}
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
+        <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
+          <span className="text-gray-900">PORTAL PPL</span>
+          <span>/</span>
+          <span className="text-gray-900">{currentUser?.nama_kabupaten || 'KABUPATEN'}</span>
+        </div>
+      </div>
+
       <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Kolom Kiri: Form Input */}

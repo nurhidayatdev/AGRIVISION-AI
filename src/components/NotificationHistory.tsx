@@ -28,6 +28,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
             last_analyzed_at,
             narasi_rekomendasi,
             status_risiko,
+            is_read,
             id_kabupaten,
             master_kabupaten ( nama_kabupaten )
           `)
@@ -47,12 +48,12 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
           dikirim_pada: r.last_analyzed_at || new Date().toISOString(),
           nama_kabupaten: r.master_kabupaten?.nama_kabupaten || 'Unknown',
           pesan_ai: r.narasi_rekomendasi || '-',
-          status_tindakan: r.status_risiko || 'Aman',
+          status_tindakan: r.is_read ? 'dibaca' : 'belum',
           id_kabupaten: r.id_kabupaten
         }));
 
         let total_alerts = logs.length;
-        let total_pending = logs.filter((l: any) => ['kritis', 'waspada', 'defisit', 'menunggu'].includes(l.status_tindakan.toLowerCase())).length;
+        let total_pending = logs.filter((l: any) => l.status_tindakan === 'belum').length;
         
         let kbCounts: any = {};
         logs.forEach((l: any) => {
@@ -110,13 +111,13 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
       <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="notifications" />
 
       {/* Breadcrumb Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
-        <div className="flex items-center text-[13px] font-medium text-gray-500 gap-2">
-            <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-900 cursor-pointer transition-colors">Beranda</button>
-            <span className="text-gray-400">›</span>
-            <span className="text-gray-900">Notifikasi</span>
-            <span className="text-gray-400">›</span>
-            <span className="text-[#113224] font-bold">Riwayat Alert</span>
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
+        <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
+          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <span>/</span>
+          <span className="hover:text-gray-700 cursor-pointer transition-colors">NOTIFIKASI</span>
+          <span>/</span>
+          <span className="text-gray-900">RIWAYAT ALERT</span>
         </div>
       </div>
 
@@ -167,9 +168,9 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
                     <tbody className="text-[13px]">
                         {logs.length > 0 ? logs.map((log: any, idx: number) => {
                             const status = log.status_tindakan?.toLowerCase() || '';
-                            const isPending = ['kritis', 'waspada', 'defisit', 'menunggu'].includes(status);
+                            const isPending = log.status_tindakan === 'belum';
                             const action_status_class = isPending ? 'bg-amber-100/50 text-[#D97706] border-amber-200' : 'bg-[#D1FAE5]/50 text-[#059669] border-[#A7F3D0]';
-                            const action_status_text = isPending ? 'MENUNGGU' : 'SELESAI';
+                            const action_status_text = isPending ? 'BELUM DIBACA' : 'DIBACA';
                             
                             const dateObj = new Date(log.dikirim_pada);
                             const diffDays = Math.floor((new Date().getTime() - dateObj.getTime()) / (1000 * 3600 * 24));
@@ -197,13 +198,30 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
                                         </span>
                                     </td>
 
-                                    <td className="py-5 px-6 text-center">
+                                    <td className="py-5 px-6 text-center flex flex-col items-center gap-2">
                                         <button 
                                             onClick={() => onNavigate('county_detail', log.id_kabupaten)}
-                                            className="px-4 py-1.5 border border-[#006B4D] text-[#006B4D] rounded-sm text-[12px] font-bold hover:bg-[#006B4D] hover:text-white transition-colors"
+                                            className="w-full px-4 py-1.5 border border-[#006B4D] text-[#006B4D] rounded-sm text-[11px] font-bold hover:bg-[#006B4D] hover:text-white transition-colors"
                                         >
                                             Lihat Detail
                                         </button>
+                                        {isPending && (
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        const { error } = await supabase.from('data_alokasi_pupuk').update({ is_read: true }).eq('id_alokasi', log.id);
+                                                        if (error) throw error;
+                                                        // Refresh data
+                                                        window.location.reload();
+                                                    } catch (err) {
+                                                        alert('Gagal menandai telah dibaca');
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-1.5 bg-amber-500 text-white rounded-sm text-[11px] font-bold hover:bg-amber-600 transition-colors"
+                                            >
+                                                Tandai Dibaca
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             );

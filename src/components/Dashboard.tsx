@@ -379,8 +379,6 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
         <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
           <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
-          <span className="hover:text-gray-700 cursor-pointer transition-colors hidden sm:inline">PUSAT KOMANDO ANALITIK</span>
-          <span className="hidden sm:inline">/</span>
           <span className="text-gray-900">{user?.is_provinsi_admin ? 'SULAWESI SELATAN' : user?.nama_kabupaten || 'KABUPATEN'}</span>
         </div>
       </div>
