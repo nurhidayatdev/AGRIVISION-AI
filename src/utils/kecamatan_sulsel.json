@@ -1,0 +1,1585 @@
+{
+  "7301": [
+    {
+      "id": "7301010",
+      "regency_id": "7301",
+      "name": "PASIMARANNU"
+    },
+    {
+      "id": "7301011",
+      "regency_id": "7301",
+      "name": "PASILAMBENA"
+    },
+    {
+      "id": "7301020",
+      "regency_id": "7301",
+      "name": "PASIMASSUNGGU"
+    },
+    {
+      "id": "7301021",
+      "regency_id": "7301",
+      "name": "TAKABONERATE"
+    },
+    {
+      "id": "7301022",
+      "regency_id": "7301",
+      "name": "PASIMASSUNGGU TIMUR"
+    },
+    {
+      "id": "7301030",
+      "regency_id": "7301",
+      "name": "BONTOSIKUYU"
+    },
+    {
+      "id": "7301040",
+      "regency_id": "7301",
+      "name": "BONTOHARU"
+    },
+    {
+      "id": "7301041",
+      "regency_id": "7301",
+      "name": "BENTENG"
+    },
+    {
+      "id": "7301042",
+      "regency_id": "7301",
+      "name": "BONTOMANAI"
+    },
+    {
+      "id": "7301050",
+      "regency_id": "7301",
+      "name": "BONTOMATENE"
+    },
+    {
+      "id": "7301051",
+      "regency_id": "7301",
+      "name": "BUKI"
+    }
+  ],
+  "7302": [
+    {
+      "id": "7302010",
+      "regency_id": "7302",
+      "name": "GANTARANG"
+    },
+    {
+      "id": "7302020",
+      "regency_id": "7302",
+      "name": "UJUNG BULU"
+    },
+    {
+      "id": "7302021",
+      "regency_id": "7302",
+      "name": "UJUNG LOE"
+    },
+    {
+      "id": "7302030",
+      "regency_id": "7302",
+      "name": "BONTO BAHARI"
+    },
+    {
+      "id": "7302040",
+      "regency_id": "7302",
+      "name": "BONTOTIRO"
+    },
+    {
+      "id": "7302050",
+      "regency_id": "7302",
+      "name": "HERO LANGE-LANGE"
+    },
+    {
+      "id": "7302060",
+      "regency_id": "7302",
+      "name": "KAJANG"
+    },
+    {
+      "id": "7302070",
+      "regency_id": "7302",
+      "name": "BULUKUMPA"
+    },
+    {
+      "id": "7302080",
+      "regency_id": "7302",
+      "name": "RILAU ALE"
+    },
+    {
+      "id": "7302090",
+      "regency_id": "7302",
+      "name": "KINDANG"
+    }
+  ],
+  "7303": [
+    {
+      "id": "7303010",
+      "regency_id": "7303",
+      "name": "BISSAPPU"
+    },
+    {
+      "id": "7303011",
+      "regency_id": "7303",
+      "name": "ULUERE"
+    },
+    {
+      "id": "7303012",
+      "regency_id": "7303",
+      "name": "SINOA"
+    },
+    {
+      "id": "7303020",
+      "regency_id": "7303",
+      "name": "BANTAENG"
+    },
+    {
+      "id": "7303021",
+      "regency_id": "7303",
+      "name": "EREMERASA"
+    },
+    {
+      "id": "7303030",
+      "regency_id": "7303",
+      "name": "TOMPOBULU"
+    },
+    {
+      "id": "7303031",
+      "regency_id": "7303",
+      "name": "PA'JUKUKANG"
+    },
+    {
+      "id": "7303032",
+      "regency_id": "7303",
+      "name": "GANTARANGKEKE"
+    }
+  ],
+  "7304": [
+    {
+      "id": "7304010",
+      "regency_id": "7304",
+      "name": "BANGKALA"
+    },
+    {
+      "id": "7304011",
+      "regency_id": "7304",
+      "name": "BANGKALA BARAT"
+    },
+    {
+      "id": "7304020",
+      "regency_id": "7304",
+      "name": "TAMALATEA"
+    },
+    {
+      "id": "7304021",
+      "regency_id": "7304",
+      "name": "BONTORAMBA"
+    },
+    {
+      "id": "7304030",
+      "regency_id": "7304",
+      "name": "BINAMU"
+    },
+    {
+      "id": "7304031",
+      "regency_id": "7304",
+      "name": "TURATEA"
+    },
+    {
+      "id": "7304040",
+      "regency_id": "7304",
+      "name": "BATANG"
+    },
+    {
+      "id": "7304041",
+      "regency_id": "7304",
+      "name": "ARUNGKEKE"
+    },
+    {
+      "id": "7304042",
+      "regency_id": "7304",
+      "name": "TAROWANG"
+    },
+    {
+      "id": "7304050",
+      "regency_id": "7304",
+      "name": "KELARA"
+    },
+    {
+      "id": "7304051",
+      "regency_id": "7304",
+      "name": "RUMBIA"
+    }
+  ],
+  "7305": [
+    {
+      "id": "7305010",
+      "regency_id": "7305",
+      "name": "MANGARA BOMBANG"
+    },
+    {
+      "id": "7305020",
+      "regency_id": "7305",
+      "name": "MAPPAKASUNGGU"
+    },
+    {
+      "id": "7305021",
+      "regency_id": "7305",
+      "name": "SANROBONE"
+    },
+    {
+      "id": "7305030",
+      "regency_id": "7305",
+      "name": "POLOMBANGKENG SELATAN"
+    },
+    {
+      "id": "7305031",
+      "regency_id": "7305",
+      "name": "PATTALLASSANG"
+    },
+    {
+      "id": "7305040",
+      "regency_id": "7305",
+      "name": "POLOMBANGKENG UTARA"
+    },
+    {
+      "id": "7305050",
+      "regency_id": "7305",
+      "name": "GALESONG SELATAN"
+    },
+    {
+      "id": "7305051",
+      "regency_id": "7305",
+      "name": "GALESONG"
+    },
+    {
+      "id": "7305060",
+      "regency_id": "7305",
+      "name": "GALESONG UTARA"
+    }
+  ],
+  "7306": [
+    {
+      "id": "7306010",
+      "regency_id": "7306",
+      "name": "BONTONOMPO"
+    },
+    {
+      "id": "7306011",
+      "regency_id": "7306",
+      "name": "BONTONOMPO SELATAN"
+    },
+    {
+      "id": "7306020",
+      "regency_id": "7306",
+      "name": "BAJENG"
+    },
+    {
+      "id": "7306021",
+      "regency_id": "7306",
+      "name": "BAJENG BARAT"
+    },
+    {
+      "id": "7306030",
+      "regency_id": "7306",
+      "name": "PALLANGGA"
+    },
+    {
+      "id": "7306031",
+      "regency_id": "7306",
+      "name": "BAROMBONG"
+    },
+    {
+      "id": "7306040",
+      "regency_id": "7306",
+      "name": "SOMBA OPU"
+    },
+    {
+      "id": "7306050",
+      "regency_id": "7306",
+      "name": "BONTOMARANNU"
+    },
+    {
+      "id": "7306051",
+      "regency_id": "7306",
+      "name": "PATTALLASSANG"
+    },
+    {
+      "id": "7306060",
+      "regency_id": "7306",
+      "name": "PARANGLOE"
+    },
+    {
+      "id": "7306061",
+      "regency_id": "7306",
+      "name": "MANUJU"
+    },
+    {
+      "id": "7306070",
+      "regency_id": "7306",
+      "name": "TINGGIMONCONG"
+    },
+    {
+      "id": "7306071",
+      "regency_id": "7306",
+      "name": "TOMBOLO PAO"
+    },
+    {
+      "id": "7306072",
+      "regency_id": "7306",
+      "name": "PARIGI"
+    },
+    {
+      "id": "7306080",
+      "regency_id": "7306",
+      "name": "BUNGAYA"
+    },
+    {
+      "id": "7306081",
+      "regency_id": "7306",
+      "name": "BONTOLEMPANGAN"
+    },
+    {
+      "id": "7306090",
+      "regency_id": "7306",
+      "name": "TOMPOBULU"
+    },
+    {
+      "id": "7306091",
+      "regency_id": "7306",
+      "name": "BIRINGBULU"
+    }
+  ],
+  "7307": [
+    {
+      "id": "7307010",
+      "regency_id": "7307",
+      "name": "SINJAI BARAT"
+    },
+    {
+      "id": "7307020",
+      "regency_id": "7307",
+      "name": "SINJAI BORONG"
+    },
+    {
+      "id": "7307030",
+      "regency_id": "7307",
+      "name": "SINJAI SELATAN"
+    },
+    {
+      "id": "7307040",
+      "regency_id": "7307",
+      "name": "TELLU LIMPOE"
+    },
+    {
+      "id": "7307050",
+      "regency_id": "7307",
+      "name": "SINJAI TIMUR"
+    },
+    {
+      "id": "7307060",
+      "regency_id": "7307",
+      "name": "SINJAI TENGAH"
+    },
+    {
+      "id": "7307070",
+      "regency_id": "7307",
+      "name": "SINJAI UTARA"
+    },
+    {
+      "id": "7307080",
+      "regency_id": "7307",
+      "name": "BULUPODDO"
+    },
+    {
+      "id": "7307090",
+      "regency_id": "7307",
+      "name": "PULAU SEMBILAN"
+    }
+  ],
+  "7308": [
+    {
+      "id": "7308010",
+      "regency_id": "7308",
+      "name": "MANDAI"
+    },
+    {
+      "id": "7308011",
+      "regency_id": "7308",
+      "name": "MONCONGLOE"
+    },
+    {
+      "id": "7308020",
+      "regency_id": "7308",
+      "name": "MAROS BARU"
+    },
+    {
+      "id": "7308021",
+      "regency_id": "7308",
+      "name": "MARUSU"
+    },
+    {
+      "id": "7308022",
+      "regency_id": "7308",
+      "name": "TURIKALE"
+    },
+    {
+      "id": "7308023",
+      "regency_id": "7308",
+      "name": "LAU"
+    },
+    {
+      "id": "7308030",
+      "regency_id": "7308",
+      "name": "BONTOA"
+    },
+    {
+      "id": "7308040",
+      "regency_id": "7308",
+      "name": "BANTIMURUNG"
+    },
+    {
+      "id": "7308041",
+      "regency_id": "7308",
+      "name": "SIMBANG"
+    },
+    {
+      "id": "7308050",
+      "regency_id": "7308",
+      "name": "TANRALILI"
+    },
+    {
+      "id": "7308051",
+      "regency_id": "7308",
+      "name": "TOMPU BULU"
+    },
+    {
+      "id": "7308060",
+      "regency_id": "7308",
+      "name": "CAMBA"
+    },
+    {
+      "id": "7308061",
+      "regency_id": "7308",
+      "name": "CENRANA"
+    },
+    {
+      "id": "7308070",
+      "regency_id": "7308",
+      "name": "MALLAWA"
+    }
+  ],
+  "7309": [
+    {
+      "id": "7309010",
+      "regency_id": "7309",
+      "name": "LIUKANG TANGAYA"
+    },
+    {
+      "id": "7309020",
+      "regency_id": "7309",
+      "name": "LIUKANG KALMAS"
+    },
+    {
+      "id": "7309030",
+      "regency_id": "7309",
+      "name": "LIUKANG TUPABBIRING"
+    },
+    {
+      "id": "7309031",
+      "regency_id": "7309",
+      "name": "LIUKANG TUPABBIRING UTARA"
+    },
+    {
+      "id": "7309040",
+      "regency_id": "7309",
+      "name": "PANGKAJENE"
+    },
+    {
+      "id": "7309041",
+      "regency_id": "7309",
+      "name": "MINASATENE"
+    },
+    {
+      "id": "7309050",
+      "regency_id": "7309",
+      "name": "BALOCCI"
+    },
+    {
+      "id": "7309051",
+      "regency_id": "7309",
+      "name": "TONDONG TALLASA"
+    },
+    {
+      "id": "7309060",
+      "regency_id": "7309",
+      "name": "BUNGORO"
+    },
+    {
+      "id": "7309070",
+      "regency_id": "7309",
+      "name": "LABAKKANG"
+    },
+    {
+      "id": "7309080",
+      "regency_id": "7309",
+      "name": "MA'RANG"
+    },
+    {
+      "id": "7309091",
+      "regency_id": "7309",
+      "name": "SEGERI"
+    },
+    {
+      "id": "7309092",
+      "regency_id": "7309",
+      "name": "MANDALLE"
+    }
+  ],
+  "7310": [
+    {
+      "id": "7310010",
+      "regency_id": "7310",
+      "name": "TANETE RIAJA"
+    },
+    {
+      "id": "7310011",
+      "regency_id": "7310",
+      "name": "PUJANANTING"
+    },
+    {
+      "id": "7310020",
+      "regency_id": "7310",
+      "name": "TANETE RILAU"
+    },
+    {
+      "id": "7310030",
+      "regency_id": "7310",
+      "name": "BARRU"
+    },
+    {
+      "id": "7310040",
+      "regency_id": "7310",
+      "name": "SOPPENG RIAJA"
+    },
+    {
+      "id": "7310041",
+      "regency_id": "7310",
+      "name": "BALUSU"
+    },
+    {
+      "id": "7310050",
+      "regency_id": "7310",
+      "name": "MALLUSETASI"
+    }
+  ],
+  "7311": [
+    {
+      "id": "7311010",
+      "regency_id": "7311",
+      "name": "BONTOCANI"
+    },
+    {
+      "id": "7311020",
+      "regency_id": "7311",
+      "name": "KAHU"
+    },
+    {
+      "id": "7311030",
+      "regency_id": "7311",
+      "name": "KAJUARA"
+    },
+    {
+      "id": "7311040",
+      "regency_id": "7311",
+      "name": "SALOMEKKO"
+    },
+    {
+      "id": "7311050",
+      "regency_id": "7311",
+      "name": "TONRA"
+    },
+    {
+      "id": "7311060",
+      "regency_id": "7311",
+      "name": "PATIMPENG"
+    },
+    {
+      "id": "7311070",
+      "regency_id": "7311",
+      "name": "LIBURENG"
+    },
+    {
+      "id": "7311080",
+      "regency_id": "7311",
+      "name": "MARE"
+    },
+    {
+      "id": "7311090",
+      "regency_id": "7311",
+      "name": "SIBULUE"
+    },
+    {
+      "id": "7311100",
+      "regency_id": "7311",
+      "name": "CINA"
+    },
+    {
+      "id": "7311110",
+      "regency_id": "7311",
+      "name": "BAREBBO"
+    },
+    {
+      "id": "7311120",
+      "regency_id": "7311",
+      "name": "PONRE"
+    },
+    {
+      "id": "7311130",
+      "regency_id": "7311",
+      "name": "LAPPARIAJA"
+    },
+    {
+      "id": "7311140",
+      "regency_id": "7311",
+      "name": "LAMURU"
+    },
+    {
+      "id": "7311141",
+      "regency_id": "7311",
+      "name": "TELLU LIMPOE"
+    },
+    {
+      "id": "7311150",
+      "regency_id": "7311",
+      "name": "BENGO"
+    },
+    {
+      "id": "7311160",
+      "regency_id": "7311",
+      "name": "ULAWENG"
+    },
+    {
+      "id": "7311170",
+      "regency_id": "7311",
+      "name": "PALAKKA"
+    },
+    {
+      "id": "7311180",
+      "regency_id": "7311",
+      "name": "AWANGPONE"
+    },
+    {
+      "id": "7311190",
+      "regency_id": "7311",
+      "name": "TELLU SIATTINGE"
+    },
+    {
+      "id": "7311200",
+      "regency_id": "7311",
+      "name": "AMALI"
+    },
+    {
+      "id": "7311210",
+      "regency_id": "7311",
+      "name": "AJANGALE"
+    },
+    {
+      "id": "7311220",
+      "regency_id": "7311",
+      "name": "DUA BOCCOE"
+    },
+    {
+      "id": "7311230",
+      "regency_id": "7311",
+      "name": "CENRANA"
+    },
+    {
+      "id": "7311710",
+      "regency_id": "7311",
+      "name": "TANETE RIATTANG BARAT"
+    },
+    {
+      "id": "7311720",
+      "regency_id": "7311",
+      "name": "TANETE RIATTANG"
+    },
+    {
+      "id": "7311730",
+      "regency_id": "7311",
+      "name": "TANETE RIATTANG TIMUR"
+    }
+  ],
+  "7312": [
+    {
+      "id": "7312010",
+      "regency_id": "7312",
+      "name": "MARIO RIWAWO"
+    },
+    {
+      "id": "7312020",
+      "regency_id": "7312",
+      "name": "LALABATA"
+    },
+    {
+      "id": "7312030",
+      "regency_id": "7312",
+      "name": "LILI RIAJA"
+    },
+    {
+      "id": "7312031",
+      "regency_id": "7312",
+      "name": "GANRA"
+    },
+    {
+      "id": "7312032",
+      "regency_id": "7312",
+      "name": "CITTA"
+    },
+    {
+      "id": "7312040",
+      "regency_id": "7312",
+      "name": "LILI RILAU"
+    },
+    {
+      "id": "7312050",
+      "regency_id": "7312",
+      "name": "DONRI DONRI"
+    },
+    {
+      "id": "7312060",
+      "regency_id": "7312",
+      "name": "MARIO RIAWA"
+    }
+  ],
+  "7313": [
+    {
+      "id": "7313010",
+      "regency_id": "7313",
+      "name": "SABBANG PARU"
+    },
+    {
+      "id": "7313020",
+      "regency_id": "7313",
+      "name": "TEMPE"
+    },
+    {
+      "id": "7313030",
+      "regency_id": "7313",
+      "name": "PAMMANA"
+    },
+    {
+      "id": "7313040",
+      "regency_id": "7313",
+      "name": "BOLA"
+    },
+    {
+      "id": "7313050",
+      "regency_id": "7313",
+      "name": "TAKKALALLA"
+    },
+    {
+      "id": "7313060",
+      "regency_id": "7313",
+      "name": "SAJOANGING"
+    },
+    {
+      "id": "7313061",
+      "regency_id": "7313",
+      "name": "PENRANG"
+    },
+    {
+      "id": "7313070",
+      "regency_id": "7313",
+      "name": "MAJAULENG"
+    },
+    {
+      "id": "7313080",
+      "regency_id": "7313",
+      "name": "TANA SITOLO"
+    },
+    {
+      "id": "7313090",
+      "regency_id": "7313",
+      "name": "BELAWA"
+    },
+    {
+      "id": "7313100",
+      "regency_id": "7313",
+      "name": "MANIANG PAJO"
+    },
+    {
+      "id": "7313101",
+      "regency_id": "7313",
+      "name": "GILIRENG"
+    },
+    {
+      "id": "7313110",
+      "regency_id": "7313",
+      "name": "KEERA"
+    },
+    {
+      "id": "7313120",
+      "regency_id": "7313",
+      "name": "PITUMPANUA"
+    }
+  ],
+  "7314": [
+    {
+      "id": "7314010",
+      "regency_id": "7314",
+      "name": "PANCA LAUTANG"
+    },
+    {
+      "id": "7314020",
+      "regency_id": "7314",
+      "name": "TELLULIMPO E"
+    },
+    {
+      "id": "7314030",
+      "regency_id": "7314",
+      "name": "WATANG PULU"
+    },
+    {
+      "id": "7314040",
+      "regency_id": "7314",
+      "name": "BARANTI"
+    },
+    {
+      "id": "7314050",
+      "regency_id": "7314",
+      "name": "PANCA RIJANG"
+    },
+    {
+      "id": "7314051",
+      "regency_id": "7314",
+      "name": "KULO"
+    },
+    {
+      "id": "7314060",
+      "regency_id": "7314",
+      "name": "MARITENGNGAE"
+    },
+    {
+      "id": "7314061",
+      "regency_id": "7314",
+      "name": "WATANG SIDENRENG"
+    },
+    {
+      "id": "7314070",
+      "regency_id": "7314",
+      "name": "PITU RIAWA"
+    },
+    {
+      "id": "7314080",
+      "regency_id": "7314",
+      "name": "DUAPITUE"
+    },
+    {
+      "id": "7314081",
+      "regency_id": "7314",
+      "name": "PITU RIASE"
+    }
+  ],
+  "7315": [
+    {
+      "id": "7315010",
+      "regency_id": "7315",
+      "name": "SUPPA"
+    },
+    {
+      "id": "7315020",
+      "regency_id": "7315",
+      "name": "MATTIROSOMPE"
+    },
+    {
+      "id": "7315021",
+      "regency_id": "7315",
+      "name": "LANRISANG"
+    },
+    {
+      "id": "7315030",
+      "regency_id": "7315",
+      "name": "MATTIRO BULU"
+    },
+    {
+      "id": "7315040",
+      "regency_id": "7315",
+      "name": "WATANG SAWITTO"
+    },
+    {
+      "id": "7315041",
+      "regency_id": "7315",
+      "name": "PALETEANG"
+    },
+    {
+      "id": "7315042",
+      "regency_id": "7315",
+      "name": "TIROANG"
+    },
+    {
+      "id": "7315050",
+      "regency_id": "7315",
+      "name": "PATAMPANUA"
+    },
+    {
+      "id": "7315060",
+      "regency_id": "7315",
+      "name": "CEMPA"
+    },
+    {
+      "id": "7315070",
+      "regency_id": "7315",
+      "name": "DUAMPANUA"
+    },
+    {
+      "id": "7315071",
+      "regency_id": "7315",
+      "name": "BATULAPPA"
+    },
+    {
+      "id": "7315080",
+      "regency_id": "7315",
+      "name": "LEMBANG"
+    }
+  ],
+  "7316": [
+    {
+      "id": "7316010",
+      "regency_id": "7316",
+      "name": "MAIWA"
+    },
+    {
+      "id": "7316011",
+      "regency_id": "7316",
+      "name": "BUNGIN"
+    },
+    {
+      "id": "7316020",
+      "regency_id": "7316",
+      "name": "ENREKANG"
+    },
+    {
+      "id": "7316021",
+      "regency_id": "7316",
+      "name": "CENDANA"
+    },
+    {
+      "id": "7316030",
+      "regency_id": "7316",
+      "name": "BARAKA"
+    },
+    {
+      "id": "7316031",
+      "regency_id": "7316",
+      "name": "BUNTU BATU"
+    },
+    {
+      "id": "7316040",
+      "regency_id": "7316",
+      "name": "ANGGERAJA"
+    },
+    {
+      "id": "7316041",
+      "regency_id": "7316",
+      "name": "MALUA"
+    },
+    {
+      "id": "7316050",
+      "regency_id": "7316",
+      "name": "ALLA"
+    },
+    {
+      "id": "7316051",
+      "regency_id": "7316",
+      "name": "CURIO"
+    },
+    {
+      "id": "7316052",
+      "regency_id": "7316",
+      "name": "MASALLE"
+    },
+    {
+      "id": "7316053",
+      "regency_id": "7316",
+      "name": "BAROKO"
+    }
+  ],
+  "7317": [
+    {
+      "id": "7317010",
+      "regency_id": "7317",
+      "name": "LAROMPONG"
+    },
+    {
+      "id": "7317011",
+      "regency_id": "7317",
+      "name": "LAROMPONG SELATAN"
+    },
+    {
+      "id": "7317020",
+      "regency_id": "7317",
+      "name": "SULI"
+    },
+    {
+      "id": "7317021",
+      "regency_id": "7317",
+      "name": "SULI BARAT"
+    },
+    {
+      "id": "7317030",
+      "regency_id": "7317",
+      "name": "BELOPA"
+    },
+    {
+      "id": "7317031",
+      "regency_id": "7317",
+      "name": "KAMANRE"
+    },
+    {
+      "id": "7317032",
+      "regency_id": "7317",
+      "name": "BELOPA UTARA"
+    },
+    {
+      "id": "7317040",
+      "regency_id": "7317",
+      "name": "BAJO"
+    },
+    {
+      "id": "7317041",
+      "regency_id": "7317",
+      "name": "BAJO BARAT"
+    },
+    {
+      "id": "7317050",
+      "regency_id": "7317",
+      "name": "BASSESANGTEMPE"
+    },
+    {
+      "id": "7317051",
+      "regency_id": "7317",
+      "name": "LATIMOJONG"
+    },
+    {
+      "id": "7317052",
+      "regency_id": "7317",
+      "name": "BASSESANGTEMPE UTARA"
+    },
+    {
+      "id": "7317060",
+      "regency_id": "7317",
+      "name": "BUPON"
+    },
+    {
+      "id": "7317061",
+      "regency_id": "7317",
+      "name": "PONRANG"
+    },
+    {
+      "id": "7317062",
+      "regency_id": "7317",
+      "name": "PONRANG SELATAN"
+    },
+    {
+      "id": "7317070",
+      "regency_id": "7317",
+      "name": "BUA"
+    },
+    {
+      "id": "7317080",
+      "regency_id": "7317",
+      "name": "WALENRANG"
+    },
+    {
+      "id": "7317081",
+      "regency_id": "7317",
+      "name": "WALENRANG TIMUR"
+    },
+    {
+      "id": "7317090",
+      "regency_id": "7317",
+      "name": "LAMASI"
+    },
+    {
+      "id": "7317091",
+      "regency_id": "7317",
+      "name": "WALENRANG UTARA"
+    },
+    {
+      "id": "7317092",
+      "regency_id": "7317",
+      "name": "WALENRANG BARAT"
+    },
+    {
+      "id": "7317093",
+      "regency_id": "7317",
+      "name": "LAMASI TIMUR"
+    }
+  ],
+  "7318": [
+    {
+      "id": "7318010",
+      "regency_id": "7318",
+      "name": "BONGGAKARADENG"
+    },
+    {
+      "id": "7318011",
+      "regency_id": "7318",
+      "name": "SIMBUANG"
+    },
+    {
+      "id": "7318012",
+      "regency_id": "7318",
+      "name": "RANO"
+    },
+    {
+      "id": "7318013",
+      "regency_id": "7318",
+      "name": "MAPPAK"
+    },
+    {
+      "id": "7318020",
+      "regency_id": "7318",
+      "name": "MENGKENDEK"
+    },
+    {
+      "id": "7318021",
+      "regency_id": "7318",
+      "name": "GANDANG BATU SILANAN"
+    },
+    {
+      "id": "7318030",
+      "regency_id": "7318",
+      "name": "SANGALLA"
+    },
+    {
+      "id": "7318031",
+      "regency_id": "7318",
+      "name": "SANGALA SELATAN"
+    },
+    {
+      "id": "7318032",
+      "regency_id": "7318",
+      "name": "SANGALLA UTARA"
+    },
+    {
+      "id": "7318040",
+      "regency_id": "7318",
+      "name": "MAKALE"
+    },
+    {
+      "id": "7318041",
+      "regency_id": "7318",
+      "name": "MAKALE SELATAN"
+    },
+    {
+      "id": "7318042",
+      "regency_id": "7318",
+      "name": "MAKALE UTARA"
+    },
+    {
+      "id": "7318050",
+      "regency_id": "7318",
+      "name": "SALUPUTTI"
+    },
+    {
+      "id": "7318051",
+      "regency_id": "7318",
+      "name": "BITTUANG"
+    },
+    {
+      "id": "7318052",
+      "regency_id": "7318",
+      "name": "REMBON"
+    },
+    {
+      "id": "7318053",
+      "regency_id": "7318",
+      "name": "MASANDA"
+    },
+    {
+      "id": "7318054",
+      "regency_id": "7318",
+      "name": "MALIMBONG BALEPE"
+    },
+    {
+      "id": "7318061",
+      "regency_id": "7318",
+      "name": "RANTETAYO"
+    },
+    {
+      "id": "7318067",
+      "regency_id": "7318",
+      "name": "KURRA"
+    }
+  ],
+  "7322": [
+    {
+      "id": "7322010",
+      "regency_id": "7322",
+      "name": "SABBANG"
+    },
+    {
+      "id": "7322020",
+      "regency_id": "7322",
+      "name": "BAEBUNTA"
+    },
+    {
+      "id": "7322030",
+      "regency_id": "7322",
+      "name": "MALANGKE"
+    },
+    {
+      "id": "7322031",
+      "regency_id": "7322",
+      "name": "MALANGKE BARAT"
+    },
+    {
+      "id": "7322040",
+      "regency_id": "7322",
+      "name": "SUKAMAJU"
+    },
+    {
+      "id": "7322050",
+      "regency_id": "7322",
+      "name": "BONE-BONE"
+    },
+    {
+      "id": "7322051",
+      "regency_id": "7322",
+      "name": "TANA LILI"
+    },
+    {
+      "id": "7322120",
+      "regency_id": "7322",
+      "name": "MASAMBA"
+    },
+    {
+      "id": "7322121",
+      "regency_id": "7322",
+      "name": "MAPPEDECENG"
+    },
+    {
+      "id": "7322122",
+      "regency_id": "7322",
+      "name": "RAMPI"
+    },
+    {
+      "id": "7322130",
+      "regency_id": "7322",
+      "name": "LIMBONG"
+    },
+    {
+      "id": "7322131",
+      "regency_id": "7322",
+      "name": "SEKO"
+    }
+  ],
+  "7325": [
+    {
+      "id": "7325010",
+      "regency_id": "7325",
+      "name": "BURAU"
+    },
+    {
+      "id": "7325020",
+      "regency_id": "7325",
+      "name": "WOTU"
+    },
+    {
+      "id": "7325030",
+      "regency_id": "7325",
+      "name": "TOMONI"
+    },
+    {
+      "id": "7325031",
+      "regency_id": "7325",
+      "name": "TOMONI TIMUR"
+    },
+    {
+      "id": "7325040",
+      "regency_id": "7325",
+      "name": "ANGKONA"
+    },
+    {
+      "id": "7325050",
+      "regency_id": "7325",
+      "name": "MALILI"
+    },
+    {
+      "id": "7325060",
+      "regency_id": "7325",
+      "name": "TOWUTI"
+    },
+    {
+      "id": "7325070",
+      "regency_id": "7325",
+      "name": "NUHA"
+    },
+    {
+      "id": "7325071",
+      "regency_id": "7325",
+      "name": "WASUPONDA"
+    },
+    {
+      "id": "7325080",
+      "regency_id": "7325",
+      "name": "MANGKUTANA"
+    },
+    {
+      "id": "7325081",
+      "regency_id": "7325",
+      "name": "KALAENA"
+    }
+  ],
+  "7326": [
+    {
+      "id": "7326010",
+      "regency_id": "7326",
+      "name": "SOPAI"
+    },
+    {
+      "id": "7326020",
+      "regency_id": "7326",
+      "name": "KESU"
+    },
+    {
+      "id": "7326030",
+      "regency_id": "7326",
+      "name": "SANGGALANGI"
+    },
+    {
+      "id": "7326040",
+      "regency_id": "7326",
+      "name": "BUNTAO"
+    },
+    {
+      "id": "7326050",
+      "regency_id": "7326",
+      "name": "RANTEBUA"
+    },
+    {
+      "id": "7326060",
+      "regency_id": "7326",
+      "name": "NANGGALA"
+    },
+    {
+      "id": "7326070",
+      "regency_id": "7326",
+      "name": "TONDON"
+    },
+    {
+      "id": "7326080",
+      "regency_id": "7326",
+      "name": "TALLUNGLIPU"
+    },
+    {
+      "id": "7326090",
+      "regency_id": "7326",
+      "name": "RANTEPAO"
+    },
+    {
+      "id": "7326100",
+      "regency_id": "7326",
+      "name": "TIKALA"
+    },
+    {
+      "id": "7326110",
+      "regency_id": "7326",
+      "name": "SESEAN"
+    },
+    {
+      "id": "7326120",
+      "regency_id": "7326",
+      "name": "BALUSU"
+    },
+    {
+      "id": "7326130",
+      "regency_id": "7326",
+      "name": "SA'DAN"
+    },
+    {
+      "id": "7326140",
+      "regency_id": "7326",
+      "name": "BENGKELEKILA"
+    },
+    {
+      "id": "7326150",
+      "regency_id": "7326",
+      "name": "SESEAN SULOARA"
+    },
+    {
+      "id": "7326160",
+      "regency_id": "7326",
+      "name": "KAPALA PITU"
+    },
+    {
+      "id": "7326170",
+      "regency_id": "7326",
+      "name": "DENDE PIONGAN NAPO"
+    },
+    {
+      "id": "7326180",
+      "regency_id": "7326",
+      "name": "AWAN RANTE KARUA"
+    },
+    {
+      "id": "7326190",
+      "regency_id": "7326",
+      "name": "RINDINGALO"
+    },
+    {
+      "id": "7326200",
+      "regency_id": "7326",
+      "name": "BUNTU PEPASAN"
+    },
+    {
+      "id": "7326210",
+      "regency_id": "7326",
+      "name": "BARUPPU"
+    }
+  ],
+  "7371": [
+    {
+      "id": "7371010",
+      "regency_id": "7371",
+      "name": "MARISO"
+    },
+    {
+      "id": "7371020",
+      "regency_id": "7371",
+      "name": "MAMAJANG"
+    },
+    {
+      "id": "7371030",
+      "regency_id": "7371",
+      "name": "TAMALATE"
+    },
+    {
+      "id": "7371031",
+      "regency_id": "7371",
+      "name": "RAPPOCINI"
+    },
+    {
+      "id": "7371040",
+      "regency_id": "7371",
+      "name": "MAKASSAR"
+    },
+    {
+      "id": "7371050",
+      "regency_id": "7371",
+      "name": "UJUNG PANDANG"
+    },
+    {
+      "id": "7371060",
+      "regency_id": "7371",
+      "name": "WAJO"
+    },
+    {
+      "id": "7371070",
+      "regency_id": "7371",
+      "name": "BONTOALA"
+    },
+    {
+      "id": "7371080",
+      "regency_id": "7371",
+      "name": "UJUNG TANAH"
+    },
+    {
+      "id": "7371081",
+      "regency_id": "7371",
+      "name": "KEPULAUAN SANGKARRANG"
+    },
+    {
+      "id": "7371090",
+      "regency_id": "7371",
+      "name": "TALLO"
+    },
+    {
+      "id": "7371100",
+      "regency_id": "7371",
+      "name": "PANAKKUKANG"
+    },
+    {
+      "id": "7371101",
+      "regency_id": "7371",
+      "name": "MANGGALA"
+    },
+    {
+      "id": "7371110",
+      "regency_id": "7371",
+      "name": "BIRING KANAYA"
+    },
+    {
+      "id": "7371111",
+      "regency_id": "7371",
+      "name": "TAMALANREA"
+    }
+  ],
+  "7372": [
+    {
+      "id": "7372010",
+      "regency_id": "7372",
+      "name": "BACUKIKI"
+    },
+    {
+      "id": "7372011",
+      "regency_id": "7372",
+      "name": "BACUKIKI BARAT"
+    },
+    {
+      "id": "7372020",
+      "regency_id": "7372",
+      "name": "UJUNG"
+    },
+    {
+      "id": "7372030",
+      "regency_id": "7372",
+      "name": "SOREANG"
+    }
+  ],
+  "7373": [
+    {
+      "id": "7373010",
+      "regency_id": "7373",
+      "name": "WARA SELATAN"
+    },
+    {
+      "id": "7373011",
+      "regency_id": "7373",
+      "name": "SENDANA"
+    },
+    {
+      "id": "7373020",
+      "regency_id": "7373",
+      "name": "WARA"
+    },
+    {
+      "id": "7373021",
+      "regency_id": "7373",
+      "name": "WARA TIMUR"
+    },
+    {
+      "id": "7373022",
+      "regency_id": "7373",
+      "name": "MUNGKAJANG"
+    },
+    {
+      "id": "7373030",
+      "regency_id": "7373",
+      "name": "WARA UTARA"
+    },
+    {
+      "id": "7373031",
+      "regency_id": "7373",
+      "name": "BARA"
+    },
+    {
+      "id": "7373040",
+      "regency_id": "7373",
+      "name": "TELLUWANUA"
+    },
+    {
+      "id": "7373041",
+      "regency_id": "7373",
+      "name": "WARA BARAT"
+    }
+  ]
+}

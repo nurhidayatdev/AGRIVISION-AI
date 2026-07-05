@@ -14,7 +14,7 @@ const getPasswordErrors = (pass: string) => {
   return errors;
 };
 
-export default function Login({ onLogin }: { onLogin: () => void }) {
+export default function Login({ onLogin }: { onLogin: (role: string) => void }) {
   const [nip, setNip] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -91,10 +91,12 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
       // 3. Simpan data session ke localStorage
       const sessionData = {
+          id_user: user.id_user,
           nip: user.nip,
           nama_lengkap: user.nama_lengkap,
           role: user.role,
           id_kabupaten: user.id_kabupaten,
+          nama_kecamatan: user.nama_kecamatan,
           // Handle Supabase joining mapping
           nama_kabupaten: user.master_kabupaten ? (Array.isArray(user.master_kabupaten) ? user.master_kabupaten[0]?.nama_kabupaten : (user.master_kabupaten as any)?.nama_kabupaten) : null,
           is_provinsi_admin: user.role === 'Admin Provinsi'
@@ -107,7 +109,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
         localStorage.removeItem('agrivision_saved_nip');
       }
       
-      onLogin();
+      onLogin(user.role);
     } catch (err) {
       console.error('Login error:', err);
       setError('Tidak dapat terhubung ke server Supabase.');

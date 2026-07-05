@@ -11,6 +11,7 @@ import ReportGenerator from './components/ReportGenerator';
 import CountyDetail from './components/CountyDetail';
 import NotificationHistory from './components/NotificationHistory';
 import UserManagement from './components/UserManagement';
+import PplReport from './components/PplReport';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -22,8 +23,17 @@ export default function App() {
     setCurrentId(id);
   };
 
+  const handleLogin = (role: string) => {
+    setIsLoggedIn(true);
+    if (role === 'PPL') {
+      setCurrentPage('laporan_ppl');
+    } else {
+      setCurrentPage('dashboard');
+    }
+  };
+
   if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   if (currentPage === 'kelola_data') {
@@ -48,6 +58,10 @@ export default function App() {
 
   if (currentPage === 'users') {
     return <UserManagement onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
+  }
+
+  if (currentPage === 'laporan_ppl') {
+    return <PplReport onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
   }
 
   return <Dashboard onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;

@@ -31,7 +31,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
             id_kabupaten,
             master_kabupaten ( nama_kabupaten )
           `)
-          .in('status_risiko', ['Kritis', 'Waspada'])
+          .in('status_risiko', ['Kritis', 'Waspada', 'Defisit', 'KRITIS', 'WASPADA', 'DEFISIT', 'kritis', 'waspada', 'defisit'])
           .order('last_analyzed_at', { ascending: false });
 
         if (fetchError) throw fetchError;

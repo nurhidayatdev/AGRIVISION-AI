@@ -39,6 +39,16 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
         return;
       }
 
+      if (userSession.role === 'Admin Kabupaten') {
+        onNavigate('county_detail', userSession.id_kabupaten);
+        return;
+      }
+
+      if (userSession.role === 'PPL') {
+        onNavigate('laporan_ppl');
+        return;
+      }
+
       let query = supabase
         .from('data_alokasi_pupuk')
         .select(`

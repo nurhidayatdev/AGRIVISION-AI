@@ -51,9 +51,21 @@ export default function Navbar({ onNavigate, onLogout, activePage }: NavbarProps
           {/* Desktop menu - hidden on mobile */}
           <div className="hidden lg:flex items-center h-full text-[14px] font-medium">
             <button onClick={() => handleNavigate('dashboard')} className={getBtnClass('dashboard')}>Dashboard</button>
-            <button onClick={() => handleNavigate('kelola_data')} className={getBtnClass('kelola_data')}>Kelola Data</button>
-            <button onClick={() => handleNavigate('cetak_laporan')} className={getBtnClass('cetak_laporan')}>Cetak Laporan</button>
-            <button onClick={() => handleNavigate('users')} className={getBtnClass('users')}>Kelola Pengguna</button>
+            
+            {currentUser?.role === 'PPL' && (
+              <button onClick={() => handleNavigate('laporan_ppl')} className={getBtnClass('laporan_ppl')}>Laporan Lapangan</button>
+            )}
+
+            {(currentUser?.role === 'Admin Provinsi' || currentUser?.role === 'Admin Pusat' || currentUser?.role === 'Super Admin Provinsi' || currentUser?.role === 'Admin Kabupaten') && (
+              <button onClick={() => handleNavigate('kelola_data')} className={getBtnClass('kelola_data')}>Kelola Data</button>
+            )}
+
+            {(currentUser?.role === 'Admin Provinsi' || currentUser?.role === 'Admin Pusat' || currentUser?.role === 'Super Admin Provinsi') && (
+              <>
+                <button onClick={() => handleNavigate('cetak_laporan')} className={getBtnClass('cetak_laporan')}>Cetak Laporan</button>
+                <button onClick={() => handleNavigate('users')} className={getBtnClass('users')}>Kelola Pengguna</button>
+              </>
+            )}
           </div>
         </div>
 
@@ -99,9 +111,21 @@ export default function Navbar({ onNavigate, onLogout, activePage }: NavbarProps
       {menuOpen && (
         <div className="lg:hidden bg-[#023E2D] border-t border-white/10 flex flex-col shadow-xl">
           <button onClick={() => handleNavigate('dashboard')} className={getMobileBtnClass('dashboard')}>Dashboard</button>
-          <button onClick={() => handleNavigate('kelola_data')} className={getMobileBtnClass('kelola_data')}>Kelola Data</button>
-          <button onClick={() => handleNavigate('cetak_laporan')} className={getMobileBtnClass('cetak_laporan')}>Cetak Laporan</button>
-          <button onClick={() => handleNavigate('users')} className={getMobileBtnClass('users')}>Kelola Pengguna</button>
+          
+          {currentUser?.role === 'PPL' && (
+            <button onClick={() => handleNavigate('laporan_ppl')} className={getMobileBtnClass('laporan_ppl')}>Laporan Lapangan</button>
+          )}
+
+          {(currentUser?.role === 'Admin Provinsi' || currentUser?.role === 'Admin Pusat' || currentUser?.role === 'Super Admin Provinsi' || currentUser?.role === 'Admin Kabupaten') && (
+            <button onClick={() => handleNavigate('kelola_data')} className={getMobileBtnClass('kelola_data')}>Kelola Data</button>
+          )}
+
+          {(currentUser?.role === 'Admin Provinsi' || currentUser?.role === 'Admin Pusat' || currentUser?.role === 'Super Admin Provinsi') && (
+            <>
+              <button onClick={() => handleNavigate('cetak_laporan')} className={getMobileBtnClass('cetak_laporan')}>Cetak Laporan</button>
+              <button onClick={() => handleNavigate('users')} className={getMobileBtnClass('users')}>Kelola Pengguna</button>
+            </>
+          )}
 
           {/* Mobile user info + logout */}
           <div className="border-t border-white/10 px-4 py-3 flex items-center justify-between">

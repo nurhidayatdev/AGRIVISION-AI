@@ -15,10 +15,12 @@ import {
   Trash2,
   Edit2
 } from 'lucide-react';
+import KECAMATAN_DATA from '../utils/kecamatan_sulsel.json';
 
 export default function UserManagement({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
   const [users, setUsers] = useState<any[]>([]);
   const [kabupatens, setKabupatens] = useState<any[]>([]);
+  const [kecamatans, setKecamatans] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -28,6 +30,8 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
   const [role, setRole] = useState('');
   const [idKabupaten, setIdKabupaten] = useState('');
   const [password, setPassword] = useState('');
+  const [namaKecamatan, setNamaKecamatan] = useState('');
+  const [nomorWa, setNomorWa] = useState('');
   
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,11 +79,28 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
     fetchKabupaten();
   }, []);
 
+  // Gunakan data statis dari JSON lokal
+  useEffect(() => {
+    if (!idKabupaten) {
+      setKecamatans([]);
+      return;
+    }
+    const selectedKab = kabupatens.find(k => k.id_kabupaten.toString() === idKabupaten);
+    if (selectedKab && selectedKab.kode_bps) {
+      const data = (KECAMATAN_DATA as any)[selectedKab.kode_bps];
+      if (data) {
+        setKecamatans(data);
+      } else {
+        setKecamatans([]);
+      }
+    }
+  }, [idKabupaten, kabupatens]);
+
   const [editId, setEditId] = useState<number | null>(null);
 
   const openAddModal = () => {
     setEditId(null);
-    setNip(''); setNamaLengkap(''); setRole(''); setIdKabupaten(''); setPassword('');
+    setNip(''); setNamaLengkap(''); setRole(''); setIdKabupaten(''); setPassword(''); setNamaKecamatan(''); setNomorWa('');
     setIsModalOpen(true);
   };
 
@@ -90,6 +111,8 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
     setRole(user.role);
     setIdKabupaten(user.id_kabupaten ? user.id_kabupaten.toString() : '');
     setPassword(''); // leave empty to not change
+    setNamaKecamatan(user.nama_kecamatan || '');
+    setNomorWa(user.nomor_wa || '');
     setIsModalOpen(true);
   };
 
@@ -123,6 +146,16 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
       }
     }
 
+    if ((role === 'Admin Kabupaten' || role === 'PPL') && !idKabupaten) {
+      alert('Anda wajib memilih Kabupaten/Instansi untuk role ini.');
+      return;
+    }
+
+    if (role === 'PPL' && !namaKecamatan) {
+      alert('Anda wajib memilih Kecamatan untuk role PPL.');
+      return;
+    }
+
     try {
       let hash = null;
       if (password) {
@@ -135,7 +168,9 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
           nip,
           nama_lengkap: namaLengkap,
           role,
-          id_kabupaten: idKabupaten || null,
+          id_kabupaten: idKabupaten ? parseInt(idKabupaten) : null,
+          nama_kecamatan: role === 'PPL' ? namaKecamatan : null,
+          nomor_wa: nomorWa || null,
         };
         if (hash) payload.password_hash = hash;
 
@@ -155,7 +190,9 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
           nip,
           nama_lengkap: namaLengkap,
           role,
-          id_kabupaten: idKabupaten || null,
+          id_kabupaten: idKabupaten ? parseInt(idKabupaten) : null,
+          nama_kecamatan: role === 'PPL' ? namaKecamatan : null,
+          nomor_wa: nomorWa || null,
           password_hash: hash
         }]);
 
@@ -294,16 +331,16 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-md shadow-2xl w-full max-w-[500px] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+        <div className="fixed inset-0 bg-black/40 z-[999] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl w-full max-w-[500px] max-h-[90vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-[18px] font-extrabold text-[#113224] tracking-tight">{editId ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}</h2>
               <button type="button" onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleSaveUser}>
-              <div className="p-6 flex flex-col gap-5">
+            <form onSubmit={handleSaveUser} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-[#113224]">NIP</label>
                   <input type="text" value={nip} onChange={e => setNip(e.target.value)} required placeholder="Masukkan Nomor Induk Pegawai" className="w-full px-3 py-2.5 border border-gray-200 rounded-sm text-[13px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]" />
@@ -326,9 +363,24 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
                   <select value={idKabupaten} onChange={e => setIdKabupaten(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-sm text-[13px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]">
                     <option value="">(Provinsi / Pusat)</option>
                     {kabupatens.map(kab => (
-                      <option key={kab.id} value={kab.id}>{kab.nama_kabupaten}</option>
+                      <option key={kab.id_kabupaten} value={kab.id_kabupaten}>{kab.nama_kabupaten}</option>
                     ))}
                   </select>
+                </div>
+                {role === 'PPL' && (
+                  <div className="space-y-1.5">
+                    <label className="text-[13px] font-bold text-[#113224]">Kecamatan (Khusus PPL)</label>
+                    <select value={namaKecamatan} onChange={e => setNamaKecamatan(e.target.value)} required={role === 'PPL'} disabled={!idKabupaten || kecamatans.length === 0} className="w-full px-3 py-2.5 border border-gray-200 rounded-sm text-[13px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D] disabled:bg-gray-100 disabled:cursor-not-allowed">
+                      <option value="">{idKabupaten ? (kecamatans.length > 0 ? "Pilih Kecamatan" : "Data Kecamatan Kosong") : "Pilih Kabupaten Terlebih Dahulu"}</option>
+                      {kecamatans.map((kec: any) => (
+                        <option key={kec.id} value={kec.name}>{kec.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-bold text-[#113224]">Nomor WhatsApp</label>
+                  <input type="text" value={nomorWa} onChange={e => setNomorWa(e.target.value)} placeholder="Mulai dengan 08... atau 628..." className="w-full px-3 py-2.5 border border-gray-200 rounded-sm text-[13px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-[#113224]">Password</label>
