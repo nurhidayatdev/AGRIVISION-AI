@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import Navbar from './Navbar';
 import bcrypt from 'bcryptjs';
@@ -184,19 +184,16 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
       <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="users" />
 
       {/* Breadcrumb Bar */}
-      <div className="bg-white px-6 py-4 shrink-0 border-b border-gray-200">
-        <div className="flex items-center text-[13px] font-medium text-gray-500 gap-2 mb-2">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-900 cursor-pointer transition-colors">Beranda</button>
-          <span className="text-gray-400">›</span>
-          <span className="hover:text-gray-900 cursor-pointer transition-colors">Pengaturan</span>
-          <span className="text-gray-400">›</span>
-          <span className="text-[#113224] font-bold">Kelola Pengguna</span>
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
+        <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
+          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <span>/</span>
+          <span className="text-gray-900">KELOLA PENGGUNA</span>
         </div>
-        <h1 className="text-[22px] font-extrabold text-[#113224] tracking-tight">Daftar Akun Pengguna Sistem</h1>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 flex flex-col gap-6 overflow-hidden">
+      <main className="flex-1 p-3 md:p-6 flex flex-col gap-4 md:gap-6 overflow-hidden">
         
         {/* Filter and Action Bar */}
         <div className="bg-white rounded-md border border-gray-200 shadow-sm p-4 flex items-center justify-between">

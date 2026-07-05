@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
 import { supabase } from '../utils/supabaseClient';
@@ -25,6 +25,9 @@ export default function CountyDetail({
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const GEMINI_URL = 'http://localhost/AGRIVISION-AI/backend_php/api_gemini_predict.php';
+
 
   // Supabase imported above
 
@@ -56,10 +59,14 @@ export default function CountyDetail({
 
       if (detailErr) throw detailErr;
 
+      const masterKab = Array.isArray(detailData.master_kabupaten) 
+        ? detailData.master_kabupaten[0] 
+        : detailData.master_kabupaten;
+
       const detail = {
         id: detailData.id_alokasi,
-        nama_kabupaten: detailData.master_kabupaten?.nama_kabupaten,
-        kode_bps: detailData.master_kabupaten?.kode_bps,
+        nama_kabupaten: masterKab?.nama_kabupaten,
+        kode_bps: masterKab?.kode_bps,
         musim_tanam: detailData.musim_tanam,
         id_kabupaten: detailData.id_kabupaten,
         luas_lahan: detailData.luas_lahan,
@@ -187,7 +194,7 @@ export default function CountyDetail({
                 </div>
                 <p className="text-[13px] text-gray-500 mb-6">BPS Code: {data.kode_bps || '-'}</p>
                 
-                <div className="h-[1px] bg-gray-100 w-full mb-5"></div>
+                <div className="h-px bg-gray-100 w-full mb-5"></div>
                 
                 <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Total Luas Tanam</div>
                 <div className="flex items-baseline gap-1.5">

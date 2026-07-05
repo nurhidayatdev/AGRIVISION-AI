@@ -367,7 +367,7 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
       {/* Filter / Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
-          <span className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</span>
+          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
           <span className="hover:text-gray-700 cursor-pointer transition-colors hidden sm:inline">PUSAT KOMANDO ANALITIK</span>
           <span className="hidden sm:inline">/</span>

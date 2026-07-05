@@ -1,8 +1,18 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IdCard, Lock, Eye, Info } from 'lucide-react';
 import logo from '../assets/logo_agrivision_ai.png';
 import bcrypt from 'bcryptjs';
 import { supabase } from '../utils/supabaseClient';
+
+const getPasswordErrors = (pass: string) => {
+  const errors = [];
+  if (pass.length < 8) errors.push(`minimal 8 karakter (kurang ${8 - pass.length})`);
+  if (!/[A-Z]/.test(pass)) errors.push('huruf besar');
+  if (!/[a-z]/.test(pass)) errors.push('huruf kecil');
+  if (!/[0-9]/.test(pass)) errors.push('angka');
+  if (!/[!@#$%^&*?]/.test(pass)) errors.push('simbol (!@#$%^&*?)');
+  return errors;
+};
 
 export default function Login({ onLogin }: { onLogin: () => void }) {
   const [nip, setNip] = useState('');
@@ -55,7 +65,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
       if (dbError || !user) {
         console.error("Supabase Error:", dbError);
-        setError(`Login gagal. Error DB: ${dbError?.message || 'User tidak ditemukan'}`);
+        setError('Otorisasi Ditolak: NIP atau Kata Sandi yang Anda masukkan salah.');
         setIsLoading(false);
         return;
       }
@@ -74,7 +84,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
       }
       
       if (!isPasswordMatch) {
-         setError('Login gagal. Periksa kembali NIP dan Kata Sandi Anda.');
+         setError('Otorisasi Ditolak: NIP atau Kata Sandi yang Anda masukkan salah.');
          setIsLoading(false);
          return;
       }
@@ -146,7 +156,9 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
               />
             </div>
             {nip.length > 0 && !/^\d{18}$/.test(nip) && (
-              <p className="text-[12px] text-red-500 mt-1 font-medium">Harus tepat 18 digit angka.</p>
+              <p className="text-[12px] text-red-500 mt-1 font-medium">
+                {nip.length < 18 ? `Kurang ${18 - nip.length} digit angka lagi.` : `Kelebihan ${nip.length - 18} digit angka.`}
+              </p>
             )}
           </div>
 
@@ -172,8 +184,10 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
                 <Eye size={20} strokeWidth={1.5} />
               </div>
             </div>
-            {password.length > 0 && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password) && (
-              <p className="text-[12px] text-red-500 mt-1 font-medium leading-tight">Minimal 8 karakter, huruf besar, huruf kecil, angka, dan simbol (!@# dsb).</p>
+            {password.length > 0 && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*?]).{8,}$/.test(password) && (
+              <p className="text-[12px] text-red-500 mt-1 font-medium leading-tight">
+                Kurang: {getPasswordErrors(password).join(', ')}.
+              </p>
             )}
           </div>
 
@@ -194,8 +208,11 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isLoading}
-            className={`w-full bg-[#006B4D] hover:bg-[#00573E] text-white font-bold text-[14px] py-3 rounded-md transition-colors mt-2 tracking-wide ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            disabled={isLoading || !/^\d{18}$/.test(nip) || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*?]).{8,}$/.test(password)}
+            className={`w-full font-bold text-[14px] py-3 rounded-md transition-colors mt-2 tracking-wide 
+              ${isLoading || !/^\d{18}$/.test(nip) || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*?]).{8,}$/.test(password) 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-[#006B4D] hover:bg-[#00573E] text-white'}`}
           >
             {isLoading ? 'MEMPROSES...' : 'OTORISASI MASUK'}
           </button>
@@ -204,7 +221,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-100">
           <div className="flex items-start justify-center text-[#94A3B8] space-x-1.5">
-            <Info size={16} className="mt-0.5 flex-shrink-0" />
+            <Info size={16} className="mt-0.5 shrink-0" />
             <p className="text-[13px] text-center max-w-[250px] leading-relaxed">
               Akses terbatas khusus staf Dinas Pertanian dan PPL
             </p>

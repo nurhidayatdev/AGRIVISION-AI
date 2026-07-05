@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
 import {
@@ -55,12 +55,12 @@ export default function ImportData({ onLogout, onNavigate }: { onLogout: () => v
       <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
 
       {/* Breadcrumb Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center justify-between shrink-0 shadow-sm z-10">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center justify-between shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
-          <span className="hover:text-gray-700 cursor-pointer transition-colors" onClick={() => onNavigate('dashboard')}>BERANDA</span>
+          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
-          <span className="hover:text-gray-700 cursor-pointer transition-colors" onClick={() => onNavigate('kelola_data')}>MANAJEMEN DATA</span>
-          <span>/</span>
+          <button onClick={() => onNavigate('kelola_data')} className="hover:text-gray-700 cursor-pointer transition-colors hidden sm:inline">MANAJEMEN DATA</button>
+          <span className="hidden sm:inline">/</span>
           <span className="text-gray-900">IMPORT BERKAS INTEGRASI</span>
         </div>
         
@@ -82,7 +82,7 @@ export default function ImportData({ onLogout, onNavigate }: { onLogout: () => v
             Sistem Gemini AI akan secara otomatis mengekstrak, memvalidasi, dan merekonsiliasi data alokasi pupuk bersubsidi dengan basis data spasial BPS.
           </p>
 
-          <div className="h-[1px] w-full bg-gray-100 mb-8"></div>
+          <div className="h-px w-full bg-gray-100 mb-8"></div>
 
           <input 
             type="file" 

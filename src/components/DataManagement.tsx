@@ -134,11 +134,9 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
       <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
 
       {/* Breadcrumb Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
-          <span className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</span>
-          <span>/</span>
-          <span className="hover:text-gray-700 cursor-pointer transition-colors">MANAJEMEN DATA</span>
+          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
           <span className="text-gray-900">ALOKASI PUPUK</span>
         </div>

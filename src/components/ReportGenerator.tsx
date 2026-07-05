@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
 import { supabase } from '../utils/supabaseClient';
@@ -109,20 +109,16 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
       <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="cetak_laporan" />
 
       {/* Breadcrumb Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 transition-colors flex items-center">
-            <ChevronRight size={14} strokeWidth={2.5} className="rotate-180" />
-          </button>
+          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
-          <span className="hover:text-gray-700 cursor-pointer transition-colors">PELAPORAN</span>
-          <span>/</span>
-          <span className="text-gray-900">GENERATOR EKSEKUTIF PDF</span>
+          <span className="text-gray-900">CETAK LAPORAN</span>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 flex gap-6 overflow-hidden">
+      <main className="flex-1 p-3 md:p-6 flex flex-col lg:flex-row gap-4 md:gap-6 overflow-auto lg:overflow-hidden">
         
         {/* Left Panel: Parameter Laporan */}
         <div className="w-[340px] bg-white rounded-md border border-gray-200 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
@@ -164,7 +160,7 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
                 </div>
               </div>
 
-              <div className="h-[1px] bg-gray-100 w-full my-2"></div>
+              <div className="h-px bg-gray-100 w-full my-2"></div>
 
               {/* Komoditas */}
               <div className="space-y-3">
