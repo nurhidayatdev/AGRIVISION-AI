@@ -16,7 +16,6 @@ import {
   MapPin
 } from 'lucide-react';
 import Navbar from './Navbar';
-import logo from '../assets/logo_agrivision_ai.png';
 
 export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string, id?: number) => void }) {
   const [data, setData] = useState<any>(null);
@@ -366,69 +365,63 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
       <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="dashboard" />
 
       {/* Filter / Breadcrumb Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 h-[60px] flex items-center justify-between shrink-0 shadow-sm z-10">
-        <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2 uppercase">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
+        <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
           <span className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</span>
           <span>/</span>
-          <span className="hover:text-gray-700 cursor-pointer transition-colors">PUSAT KOMANDO ANALITIK</span>
-          <span>/</span>
+          <span className="hover:text-gray-700 cursor-pointer transition-colors hidden sm:inline">PUSAT KOMANDO ANALITIK</span>
+          <span className="hidden sm:inline">/</span>
           <span className="text-gray-900">{user?.is_provinsi_admin ? 'SULAWESI SELATAN' : user?.nama_kabupaten || 'KABUPATEN'}</span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Tombol Export PDF telah dihapus agar user fokus menggunakan menu Cetak Laporan */}
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 flex gap-6 overflow-hidden">
+      <main className="flex-1 p-3 md:p-6 flex flex-col lg:flex-row gap-4 md:gap-6 overflow-auto lg:overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-[300px] flex flex-col gap-6 shrink-0 overflow-y-auto pb-4 custom-scrollbar">
+        <div className="w-full lg:w-[300px] flex flex-col gap-4 md:gap-6 lg:shrink-0 lg:overflow-y-auto pb-2 lg:pb-4 custom-scrollbar">
           
           {/* Ringkasan Alokasi */}
-          <div className="bg-white rounded-md shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-gray-100 p-6">
-            <h2 className="text-[13px] font-bold text-gray-500 tracking-wider uppercase mb-6">Ringkasan Alokasi</h2>
+          <div className="bg-white rounded-md shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-gray-100 p-5 md:p-6">
+            <h2 className="text-[12px] md:text-[13px] font-bold text-gray-500 tracking-wider uppercase mb-4 md:mb-6">Ringkasan Alokasi</h2>
             
-            <div className="mb-6">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[32px] font-extrabold text-[#113224] tracking-tighter leading-none">{formatNumber(totals.lahan)}</span>
-                <span className="text-sm font-bold text-[#113224]">Ha</span>
+            <div className="grid grid-cols-3 lg:grid-cols-1 gap-4">
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[22px] md:text-[28px] lg:text-[32px] font-extrabold text-[#113224] tracking-tighter leading-none">{formatNumber(totals.lahan)}</span>
+                  <span className="text-xs md:text-sm font-bold text-[#113224]">Ha</span>
+                </div>
+                <div className="text-[10px] font-bold text-gray-500 tracking-wider mt-1 md:mt-2">TOTAL LUAS LAHAN</div>
               </div>
-              <div className="text-[11px] font-bold text-gray-500 tracking-wider mt-2">TOTAL LUAS LAHAN</div>
-            </div>
 
-            <div className="h-[1px] bg-gray-100 w-full mb-6"></div>
-
-            <div className="mb-6">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[32px] font-extrabold text-[#006B4D] tracking-tighter leading-none">{formatNumber(totals.urea)}</span>
-                <span className="text-sm font-bold text-[#006B4D]">Ton</span>
+              <div className="lg:border-t lg:border-gray-100 lg:pt-4">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[22px] md:text-[28px] lg:text-[32px] font-extrabold text-[#006B4D] tracking-tighter leading-none">{formatNumber(totals.urea)}</span>
+                  <span className="text-xs md:text-sm font-bold text-[#006B4D]">Ton</span>
+                </div>
+                <div className="text-[10px] font-bold text-gray-500 tracking-wider mt-1 md:mt-2">TOTAL KUOTA UREA</div>
               </div>
-              <div className="text-[11px] font-bold text-gray-500 tracking-wider mt-2">TOTAL KUOTA UREA</div>
-            </div>
 
-            <div className="h-[1px] bg-gray-100 w-full mb-6"></div>
-
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[32px] font-extrabold text-[#006B4D] tracking-tighter leading-none">{formatNumber(totals.npk)}</span>
-                <span className="text-sm font-bold text-[#006B4D]">Ton</span>
+              <div className="lg:border-t lg:border-gray-100 lg:pt-4">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[22px] md:text-[28px] lg:text-[32px] font-extrabold text-[#006B4D] tracking-tighter leading-none">{formatNumber(totals.npk)}</span>
+                  <span className="text-xs md:text-sm font-bold text-[#006B4D]">Ton</span>
+                </div>
+                <div className="text-[10px] font-bold text-gray-500 tracking-wider mt-1 md:mt-2">TOTAL KUOTA NPK</div>
               </div>
-              <div className="text-[11px] font-bold text-gray-500 tracking-wider mt-2">TOTAL KUOTA NPK</div>
             </div>
           </div>
 
           {/* Wilayah Kritis */}
           <div className="bg-[#FCFDFD] rounded-md shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col">
-            <div className="px-5 py-3.5 border-b border-red-100 flex items-center justify-between bg-red-50/40 rounded-t-md">
-              <div className="flex items-center gap-2.5 text-[#B91C1C]">
-                <AlertTriangle size={18} strokeWidth={2.5} />
-                <h2 className="text-[13px] font-extrabold tracking-widest uppercase">Wilayah Kritis</h2>
+            <div className="px-4 md:px-5 py-3 md:py-3.5 border-b border-red-100 flex items-center justify-between bg-red-50/40 rounded-t-md">
+              <div className="flex items-center gap-2 text-[#B91C1C]">
+                <AlertTriangle size={16} strokeWidth={2.5} />
+                <h2 className="text-[12px] md:text-[13px] font-extrabold tracking-widest uppercase">Wilayah Kritis</h2>
               </div>
               <span className="bg-red-200 text-red-800 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">LIVE</span>
             </div>
 
-            <div className="p-5 flex flex-col gap-6">
+            <div className="p-4 md:p-5 flex flex-col gap-4 md:gap-6">
               {kritis_data.length > 0 ? kritis_data.map((row: any, idx: number) => {
                 const status = row.status_risiko.toLowerCase();
                 const isKritis = status === 'kritis' || status === 'defisit';
@@ -466,40 +459,40 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
         </div>
 
         {/* Right Main Area */}
-        <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+        <div className="flex-1 flex flex-col gap-4 md:gap-6 min-w-0 lg:overflow-hidden">
           
           {/* Header Banner */}
-          <div className="bg-gradient-to-r from-[#1E3B33] to-[#254A41] rounded-md px-8 py-7 flex items-center justify-between text-white shadow-sm shrink-0 relative overflow-hidden">
+          <div className="bg-linear-to-r from-[#1E3B33] to-[#254A41] rounded-md px-5 md:px-8 py-5 md:py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between text-white shadow-sm shrink-0 relative overflow-hidden gap-4 sm:gap-0">
              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
              
             <div className="relative z-10">
-              <h1 className="text-[22px] font-extrabold tracking-tight mb-2">Status Ketahanan Pupuk: {user?.is_provinsi_admin ? 'Sulawesi Selatan' : user?.nama_kabupaten || 'Kabupaten'}</h1>
-              <p className="text-white/80 text-[14px] font-medium">Analisis prediktif berbasis data cuaca dan realisasi e-RDKK bulan ini.</p>
+              <h1 className="text-[17px] md:text-[20px] lg:text-[22px] font-extrabold tracking-tight mb-1 md:mb-2">Status Ketahanan Pupuk: {user?.is_provinsi_admin ? 'Sulawesi Selatan' : user?.nama_kabupaten || 'Kabupaten'}</h1>
+              <p className="text-white/80 text-[12px] md:text-[14px] font-medium">Analisis prediktif berbasis data cuaca dan realisasi e-RDKK bulan ini.</p>
             </div>
-            <div className="flex items-center gap-3 relative z-10">
-              <div className="flex items-center gap-2 text-white/90 text-[12px] bg-white/10 px-3 py-1.5 rounded border border-white/20">
+            <div className="flex items-center gap-2 md:gap-3 relative z-10 flex-wrap">
+              <div className="flex items-center gap-2 text-white/90 text-[11px] md:text-[12px] bg-white/10 px-2.5 py-1.5 rounded border border-white/20">
                 <div className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></div>
                 AI Auto-Sync Aktif
               </div>
               <button 
                 onClick={handleRunAllGemini}
                 disabled={isAiLoading}
-                className="bg-[#34D399] hover:bg-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed text-[#022C22] font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors shadow-sm text-[12px] tracking-wide"
+                className="bg-[#34D399] hover:bg-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed text-[#022C22] font-bold px-3 md:px-4 py-2 rounded flex items-center gap-2 transition-colors shadow-sm text-[11px] md:text-[12px] tracking-wide"
               >
-                <Sparkles size={14} className="text-[#022C22] fill-[#022C22]" />
+                <Sparkles size={13} className="text-[#022C22] fill-[#022C22]" />
                 {isAiLoading ? (aiProgress || 'Menganalisis...') : 'Jalankan Gemini AI'}
               </button>
             </div>
           </div>
 
           {/* Map Area */}
-          <div className="flex-1 rounded-md border border-gray-200 relative overflow-hidden min-h-[400px]">
+          <div className="flex-1 rounded-md border border-gray-200 relative overflow-hidden min-h-[300px] md:min-h-[400px]">
             {/* The actual leaflet map container */}
             <div ref={mapContainer} className="absolute inset-0 z-0"></div>
 
             {/* Overlay Info Panel */}
             {activeFocusArea && (
-              <div className="absolute top-6 left-6 w-[300px] bg-white rounded-md shadow-[0_12px_40px_rgb(0,0,0,0.12)] flex flex-col z-10 border border-gray-100 overflow-hidden">
+              <div className="absolute top-3 left-3 md:top-6 md:left-6 w-[260px] md:w-[300px] bg-white rounded-md shadow-[0_12px_40px_rgb(0,0,0,0.12)] flex flex-col z-10 border border-gray-100 overflow-hidden">
                 <div className="p-5 border-b border-gray-100 flex items-start justify-between bg-gray-50/50">
                   <h3 className="font-extrabold text-[15px] text-[#113224] uppercase leading-snug w-3/4 tracking-tight">
                     Fokus Area: {activeFocusArea.nama_kabupaten}
