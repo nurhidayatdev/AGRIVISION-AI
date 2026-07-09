@@ -13,7 +13,8 @@ import {
   Crosshair,
   Sparkles,
   LogOut,
-  MapPin
+  MapPin,
+  CheckCircle2
 } from 'lucide-react';
 import Navbar from './Navbar';
 
@@ -23,6 +24,8 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
   const [isLoading, setIsLoading] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState('');
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiModalMessage, setAiModalMessage] = useState('');
   const [error, setError] = useState('');
   
   const mapRef = useRef<any>(null);
@@ -64,11 +67,21 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
 
       if (dbError) throw dbError;
 
+      // Ambil hanya data tahun terbaru untuk Dashboard
+      let filteredData = allData || [];
+      if (filteredData.length > 0) {
+        const uniqueYears = Array.from(new Set(filteredData.map(row => Number(row.tahun)))).filter(Boolean);
+        if (uniqueYears.length > 0) {
+           const latestYear = Math.max(...uniqueYears);
+           filteredData = filteredData.filter(row => Number(row.tahun) === latestYear);
+        }
+      }
+
       let totalLahan = 0, totalUrea = 0, totalNpk = 0;
       const mapDataMap = new Map();
       const kritisData: any[] = [];
 
-      allData?.forEach((row: any) => {
+      filteredData.forEach((row: any) => {
         totalLahan += Number(row.luas_lahan) || 0;
         totalUrea += Number(row.kuota_urea) || 0;
         totalNpk += Number(row.kuota_npk) || 0;
@@ -217,11 +230,21 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
     }
 
     // Ambil semua data alokasi untuk dianalisis
-    const { data: allData, error: dbError } = await supabase.from('data_alokasi_pupuk').select(`*, master_kabupaten(nama_kabupaten)`);
-    if (dbError || !allData) {
+    const { data: allDataRaw, error: dbError } = await supabase.from('data_alokasi_pupuk').select(`*, master_kabupaten(nama_kabupaten)`);
+    if (dbError || !allDataRaw) {
        alert('Gagal mengambil data alokasi untuk dianalisis.');
        setIsAiLoading(false);
        return;
+    }
+
+    // Filter ke tahun terbaru saja
+    let allData = allDataRaw || [];
+    if (allData.length > 0) {
+      const uniqueYears = Array.from(new Set(allData.map(row => Number(row.tahun)))).filter(Boolean);
+      if (uniqueYears.length > 0) {
+         const latestYear = Math.max(...uniqueYears);
+         allData = allData.filter(row => Number(row.tahun) === latestYear);
+      }
     }
 
     const totalToAnalyze = allData.length;
@@ -349,7 +372,8 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
     await fetchDashboardData();
     setIsAiLoading(false);
     setAiProgress('');
-    alert(`Analisis Gemini AI selesai untuk ${successCount} dari ${total} wilayah! Peta telah diperbarui.`);
+    setAiModalMessage(`Analisis Gemini AI selesai untuk ${successCount} dari ${totalToAnalyze} wilayah! Peta dan rekomendasi telah diperbarui.`);
+    setShowAiModal(true);
   };
 
   if (isLoading) {
@@ -545,6 +569,30 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
 
         </div>
       </main>
+      {/* Custom AI Success Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-[#D1DFD9] text-[#10B981] rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 size={32} strokeWidth={2.5} />
+              </div>
+              <h3 className="text-xl font-extrabold text-[#113224] mb-2">Analisis Selesai!</h3>
+              <p className="text-gray-500 text-[15px] leading-relaxed mb-6">
+                {aiModalMessage}
+              </p>
+              
+              <button
+                onClick={() => setShowAiModal(false)}
+                className="w-full bg-[#113224] hover:bg-[#0A2017] text-white font-bold py-3.5 px-4 rounded-lg transition-colors shadow-md tracking-wider text-sm"
+              >
+                TUTUP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

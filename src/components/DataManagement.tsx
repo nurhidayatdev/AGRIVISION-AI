@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Navbar from './Navbar';
 import logo from '../assets/logo_agrivision_ai.png';
 import { supabase } from '../utils/supabaseClient';
@@ -8,7 +8,6 @@ import {
   ChevronDown,
   Search,
   FileSpreadsheet,
-  Filter,
   TrendingUp,
   TrendingDown,
   ArrowRight,
@@ -17,12 +16,14 @@ import {
 } from 'lucide-react';
 
 export default function DataManagement({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
-  const [data, setData] = useState<any[]>([]);
+  const [rawData, setRawData] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua Status');
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [yearFilter, setYearFilter] = useState<string>('');
 
   const fetchData = async () => {
     try {
@@ -50,10 +51,27 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
           nama_kabupaten: row.master_kabupaten?.nama_kabupaten,
           kode_bps: row.master_kabupaten?.kode_bps
       }));
+      setRawData(formattedData);
 
-      // Aggregate duplicate commodities by kabupaten (summing values)
-      const aggMap = new Map();
-      formattedData.forEach((row: any) => {
+      const uniqueYears = Array.from(new Set(formattedData.map(row => Number(row.tahun)))).filter(Boolean).sort((a, b) => b - a);
+      setAvailableYears(uniqueYears);
+      setYearFilter(prev => {
+          if (!prev && uniqueYears.length > 0) return uniqueYears[0].toString();
+          if (prev && !uniqueYears.includes(Number(prev)) && uniqueYears.length > 0) return uniqueYears[0].toString();
+          return prev;
+      });
+    } catch (err) {
+      console.error(err);
+      setError('Gagal memuat data dari Supabase');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const data = useMemo(() => {
+     const filteredRaw = rawData.filter(row => !yearFilter || Number(row.tahun) === Number(yearFilter));
+     const aggMap = new Map();
+     filteredRaw.forEach((row: any) => {
          const id = row.id_kabupaten;
          if (!aggMap.has(id)) {
             aggMap.set(id, { ...row });
@@ -72,15 +90,8 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
             }
          }
       });
-
-      setData(Array.from(aggMap.values()));
-    } catch (err) {
-      console.error(err);
-      setError('Gagal memuat data dari Supabase');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return Array.from(aggMap.values());
+  }, [rawData, yearFilter]);
 
   useEffect(() => {
     fetchData();
@@ -176,10 +187,17 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
           </div>
 
           <div className="w-[280px] space-y-1.5">
-            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Periode Bulan</label>
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Periode Tahun</label>
             <div className="relative">
-              <select className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded text-[13px] text-gray-700 appearance-none bg-white focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]">
-                <option>Semua Bulan</option>
+              <select 
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                className="w-full pl-3 pr-8 py-2 border border-gray-200 rounded text-[13px] text-gray-700 appearance-none bg-white focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]"
+              >
+                {availableYears.map(year => (
+                  <option key={year} value={year.toString()}>{year}</option>
+                ))}
+                {availableYears.length === 0 && <option value="">Tidak ada data</option>}
               </select>
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                 <ChevronDown size={16} strokeWidth={2} />
@@ -206,11 +224,6 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
               </div>
             </div>
           </div>
-
-          <button className="h-[38px] px-5 border border-gray-200 rounded bg-white text-gray-700 text-[13px] font-semibold flex items-center gap-2 hover:bg-gray-50 transition-colors">
-            <Filter size={14} strokeWidth={2} />
-            Filter
-          </button>
         </div>
 
         {/* Data Table */}
@@ -295,11 +308,6 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
           <div className="p-4 border-t border-gray-200 flex items-center justify-between text-[13px] text-gray-500 bg-white rounded-b-md">
             <div>
               Menampilkan total <span className="font-bold text-gray-700">{filteredData.length}</span> data
-            </div>
-            <div className="flex items-center gap-1">
-              <button className="px-3 py-1.5 border border-gray-200 rounded text-gray-500 hover:bg-gray-50 transition-colors">Seb</button>
-              <button className="px-3 py-1.5 border border-[#10B981] bg-[#ECFDF5] text-[#059669] font-bold rounded">1</button>
-              <button className="px-3 py-1.5 border border-gray-200 rounded text-gray-500 hover:bg-gray-50 transition-colors">Lanjut</button>
             </div>
           </div>
         </div>

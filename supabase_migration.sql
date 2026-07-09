@@ -37,6 +37,7 @@ INSERT INTO master_kabupaten (id_kabupaten, nama_kabupaten, kode_bps, koordinat_
 CREATE TABLE data_alokasi_pupuk (
     id_alokasi SERIAL PRIMARY KEY,
     id_kabupaten INT REFERENCES master_kabupaten(id_kabupaten),
+    tahun INT DEFAULT 2024,
     musim_tanam VARCHAR(50),
     komoditas VARCHAR(100),
     luas_lahan DECIMAL(15, 2),
