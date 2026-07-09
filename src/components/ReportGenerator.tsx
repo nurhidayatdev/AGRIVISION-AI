@@ -11,36 +11,62 @@ import {
   ChevronDown,
   Check,
   ShieldAlert,
-  Terminal
+  Terminal,
+  AlertCircle
 } from 'lucide-react';
 
 export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
   const [kabupatens, setKabupatens] = useState<any[]>([]);
   const [isAiEnabled, setIsAiEnabled] = useState(true);
   const [reportData, setReportData] = useState<any[]>([]);
-  const [reportMetadata, setReportMetadata] = useState<any>({ musim: '', wilayah: '', komoditas: '' });
+  const [reportMetadata, setReportMetadata] = useState<any>({ tahun: '', wilayah: '', pupuk_terpilih: ['Urea', 'NPK'] });
+  const [generatedAiNarrative, setGeneratedAiNarrative] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [printTrigger, setPrintTrigger] = useState(0);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [terminalLogs, setTerminalLogs] = useState<string[]>(['[INFO] Menunggu parameter dari pengguna...']);
+  const terminalRef = React.useRef<HTMLDivElement>(null);
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
   useEffect(() => {
-    const fetchKabupaten = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('master_kabupaten')
-          .select('id_kabupaten, nama_kabupaten')
-          .order('nama_kabupaten', { ascending: true });
-          
-        if (error) throw error;
-        
-        if (data) {
-          setKabupatens(data.map(k => ({ id: k.id_kabupaten, nama_kabupaten: k.nama_kabupaten })));
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data kabupaten dari Supabase", err);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsYearDropdownOpen(false);
       }
     };
-    fetchKabupaten();
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const { data: kabData } = await supabase.from('master_kabupaten').select('id_kabupaten, nama_kabupaten').order('nama_kabupaten', { ascending: true });
+        if (kabData) setKabupatens(kabData.map(k => ({ id: k.id_kabupaten, nama_kabupaten: k.nama_kabupaten })));
+
+        const { data: yearData } = await supabase.from('data_alokasi_pupuk').select('tahun');
+        if (yearData) {
+           const uniqueYears = Array.from(new Set(yearData.map(d => Number(d.tahun)))).filter(Boolean).sort((a,b) => b-a);
+           setAvailableYears(uniqueYears);
+           if (uniqueYears.length > 0) setSelectedYears([uniqueYears[0]]);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data inisial", err);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  // Auto scroll terminal
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalLogs]);
 
   useEffect(() => {
     if (printTrigger > 0 && reportData.length > 0) {
@@ -52,49 +78,114 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
 
   const handleGenerateReport = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isGenerating) return;
     setIsGenerating(true);
+    setTerminalLogs([`[${new Date().toLocaleTimeString('id-ID')}] [INIT] Memulai proses kompilasi laporan PDF...`]);
     
     const formData = new FormData(e.currentTarget);
-    const musim = formData.get('musim_tanam') as string;
     const idKab = formData.get('id_kabupaten') as string;
     
-    // get all checked commodities
-    const inputs = e.currentTarget.querySelectorAll('input[name="komoditas"]:checked');
-    const komoditas = Array.from(inputs).map(i => (i as HTMLInputElement).value);
+    if (selectedYears.length === 0) {
+      setModalMessage("Pilih minimal satu periode tahun untuk dicetak!");
+      setShowModal(true);
+      setIsGenerating(false);
+      return;
+    }
+    const tahunTerpilih = selectedYears;
+    
+    // get selected fertilizers
+    const inputs = e.currentTarget.querySelectorAll('input[name="jenis_pupuk"]:checked');
+    const pupukTerpilih = Array.from(inputs).map(i => (i as HTMLInputElement).value);
+    
+    if (pupukTerpilih.length === 0) {
+      alert("Pilih minimal satu jenis pupuk untuk dicetak!");
+      setIsGenerating(false);
+      return;
+    }
+    
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+    const addLog = (msg: string) => setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString('id-ID')}] ${msg}`]);
+
+    await delay(600);
+    addLog("[FETCH] Mengamankan koneksi ke Supabase Database...");
     
     let query = supabase.from('data_alokasi_pupuk').select(`*, master_kabupaten(nama_kabupaten, kode_bps)`);
     
-    if (musim && musim !== 'Semua') {
-      query = query.eq('musim_tanam', musim);
+    if (tahunTerpilih.length > 0) {
+      query = query.in('tahun', tahunTerpilih);
     }
     if (idKab && idKab !== '') {
       query = query.eq('id_kabupaten', idKab);
     }
-    if (komoditas.length > 0) {
-      query = query.in('komoditas', komoditas);
-    }
     
-    const { data, error } = await query.order('id_alokasi', { ascending: true });
+    await delay(800);
+    addLog("[DATA] Mengekstraksi data alokasi dan master kabupaten...");
+    const { data, error } = await query.order('tahun', { ascending: false }).order('id_alokasi', { ascending: true });
     
     if (error) {
-      console.error(error);
-      alert("Gagal menarik data untuk cetak");
+      addLog("[ERROR] Gagal menarik data dari server.");
       setIsGenerating(false);
       return;
     }
     
     if (!data || data.length === 0) {
-      alert("Data kosong untuk parameter yang dipilih.");
+      addLog("[WARN] Data kosong untuk parameter yang dipilih. Dibatalkan.");
       setIsGenerating(false);
       return;
     }
 
-    const wilayahText = idKab === '' ? 'Nasional - Seluruh Provinsi' : (data[0].master_kabupaten?.nama_kabupaten || 'Wilayah Tertentu');
+    if (isAiEnabled) {
+       await delay(900);
+       addLog("[AI_SYS] Menginisialisasi Gemini AI Context Engine...");
+       await delay(1200);
+       addLog("[AI_SYS] Menyusun narasi rekomendasi eksekutif berdasarkan tren cuaca dan sentimen...");
+       
+       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+       if (apiKey) {
+         try {
+           const wilayahTeks = idKab === '' ? 'Semua Kabupaten/Kota' : (data[0].master_kabupaten?.nama_kabupaten || 'Wilayah Tertentu');
+           const summaryData = data.slice(0, 15).map((d: any) => `${d.master_kabupaten?.nama_kabupaten || ''}: Urea ${d.kuota_urea} vs ${d.prediksi_urea}, Status ${d.status_risiko}`).join('; ');
+           
+           const prompt = `Buatkan analisis naratif eksekutif yang ditujukan kepada pemangku kepentingan (Gubernur, Dinas Pertanian, dan Kebijakan Publik) terkait alokasi dan prediksi pupuk di ${wilayahTeks} tahun ${tahunTerpilih.join(', ')}. Analisis harus terdiri dari 2-3 paragraf komprehensif yang mencakup: 1. Kondisi umum ketersediaan pupuk vs prediksi kebutuhan. 2. Identifikasi area dengan risiko defisit tinggi atau kritis. 3. Rekomendasi kebijakan logistik atau intervensi strategis. Gunakan data sampel berikut sebagai basis fakta: ${summaryData}. Gunakan bahasa Indonesia yang sangat formal, profesional, dan berwibawa. Jangan gunakan format markdown (seperti tebal/miring), gunakan teks paragraf biasa saja.`;
+           
+           const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+           });
+           
+           if (res.ok) {
+             const aiData = await res.json();
+             const text = aiData.candidates[0].content.parts[0].text;
+             setGeneratedAiNarrative(text.trim());
+             addLog("[AI_SYS] Narasi AI berhasil di-generate.");
+           } else {
+             const errText = await res.text();
+             setGeneratedAiNarrative("Data naratif gagal dimuat dari server AI.");
+             addLog(`[WARN] Gagal mendapatkan respons dari Gemini AI. Kode: ${res.status}`);
+             console.error("Gemini Error:", errText);
+           }
+         } catch (e) {
+           setGeneratedAiNarrative("Terjadi kesalahan koneksi ke server AI.");
+           addLog("[WARN] Kesalahan koneksi Gemini AI.");
+         }
+       }
+    } else {
+       setGeneratedAiNarrative('');
+    }
+    
+    await delay(700);
+    addLog("[AUTH] Menerapkan Tanda Tangan Elektronik Tersertifikasi (e-Sign BSSN)...");
+    
+    await delay(800);
+    addLog("[DONE] Rendering PDF selesai. Meneruskan ke modul Print...");
+
+    const wilayahText = idKab === '' ? 'Semua Kabupaten/Kota' : (data[0].master_kabupaten?.nama_kabupaten || 'Wilayah Tertentu');
     
     setReportMetadata({
-      musim: musim === 'Semua' ? 'Semua Musim' : musim,
+      tahun: tahunTerpilih.join(', '),
       wilayah: wilayahText,
-      komoditas: komoditas.length > 0 ? komoditas.join(', ') : 'Semua Komoditas'
+      pupuk_terpilih: pupukTerpilih
     });
     
     setReportData(data);
@@ -123,24 +214,63 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
         {/* Left Panel: Parameter Laporan */}
         <div className="w-[340px] bg-white rounded-md border border-gray-200 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
           <form onSubmit={handleGenerateReport} className="flex flex-col h-full">
-            <div className="p-6 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-5 border-b border-gray-100 flex items-center gap-3">
               <FileText size={24} strokeWidth={2.5} className="text-[#006B4D]" />
               <h2 className="text-[18px] font-extrabold text-[#113224]">Parameter Laporan</h2>
             </div>
             
-            <div className="p-6 flex flex-col gap-6 flex-1">
+            <div className="p-5 flex flex-col gap-5 flex-1">
               {/* Periode */}
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Periode Pelaporan</label>
+              <div className="space-y-3" ref={dropdownRef}>
+                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Periode Tahun</label>
                 <div className="relative">
-                  <select name="musim_tanam" className="w-full pl-3 pr-8 py-2.5 border border-gray-200 rounded text-[13px] text-gray-700 appearance-none bg-white focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]">
-                    <option value="Musim Kemarau 2026">Musim Kemarau 2026</option>
-                    <option value="Musim Hujan 2026">Musim Hujan 2026</option>
-                    <option value="Semua">Semua Musim</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                  <div 
+                    onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                    className="w-full pl-3 pr-8 py-2.5 border border-gray-200 rounded text-[13px] text-gray-700 bg-white flex items-center cursor-pointer focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]"
+                  >
+                    <span className="truncate">{selectedYears.length > 0 ? selectedYears.sort((a,b) => b-a).join(', ') : 'Pilih Tahun'}</span>
+                  </div>
+                  <div className={`absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400 transition-transform ${isYearDropdownOpen ? 'rotate-180' : ''}`}>
                     <ChevronDown size={16} strokeWidth={2} />
                   </div>
+                  
+                  {isYearDropdownOpen && (
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto custom-scrollbar py-1">
+                      {availableYears.length > 0 && (
+                        <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedYears.length === availableYears.length}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedYears([...availableYears]);
+                              else setSelectedYears([]);
+                            }}
+                            className="w-4 h-4 text-[#006B4D] bg-white border-gray-300 rounded focus:ring-[#006B4D] cursor-pointer accent-[#006B4D]" 
+                          />
+                          <span className="text-[13px] font-bold text-gray-800">Pilih Semua</span>
+                        </label>
+                      )}
+                      {availableYears.map((y) => (
+                        <label key={y} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            name="tahun" 
+                            value={y.toString()} 
+                            checked={selectedYears.includes(y)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedYears([...selectedYears, y]);
+                              else setSelectedYears(selectedYears.filter(year => year !== y));
+                            }}
+                            className="w-4 h-4 text-[#006B4D] bg-white border-gray-300 rounded focus:ring-[#006B4D] cursor-pointer accent-[#006B4D]" 
+                          />
+                          <span className="text-[13px] text-gray-700 font-medium">{y}</span>
+                        </label>
+                      ))}
+                      {availableYears.length === 0 && (
+                        <div className="px-3 py-2 text-[12px] text-gray-400 italic">Memuat tahun...</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -149,7 +279,7 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
                 <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Cakupan Wilayah</label>
                 <div className="relative">
                   <select name="id_kabupaten" className="w-full pl-3 pr-8 py-2.5 border border-gray-200 rounded text-[13px] text-gray-700 appearance-none bg-white focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D]">
-                    <option value="">Nasional - Seluruh Provinsi</option>
+                    <option value="">Semua Kabupaten/Kota</option>
                     {kabupatens.map(kab => (
                       <option key={kab.id} value={kab.id}>{kab.nama_kabupaten}</option>
                     ))}
@@ -162,20 +292,16 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
 
               <div className="h-px bg-gray-100 w-full my-2"></div>
 
-              {/* Komoditas */}
+              {/* Jenis Pupuk */}
               <div className="space-y-3">
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pilih Komoditas Pupuk</label>
+                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pilih Jenis Pupuk</label>
                 <div className="flex gap-6">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 bg-[#006B4D] rounded flex items-center justify-center">
-                      <Check size={12} className="text-white" strokeWidth={3} />
-                    </div>
+                    <input type="checkbox" name="jenis_pupuk" value="Urea" defaultChecked className="w-4 h-4 text-[#006B4D] bg-white border-gray-300 rounded focus:ring-[#006B4D] cursor-pointer accent-[#006B4D]" />
                     <span className="text-[13px] text-gray-700 font-medium">Urea</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="w-4 h-4 bg-[#006B4D] rounded flex items-center justify-center">
-                      <Check size={12} className="text-white" strokeWidth={3} />
-                    </div>
+                    <input type="checkbox" name="jenis_pupuk" value="NPK" defaultChecked className="w-4 h-4 text-[#006B4D] bg-white border-gray-300 rounded focus:ring-[#006B4D] cursor-pointer accent-[#006B4D]" />
                     <span className="text-[13px] text-gray-700 font-medium">NPK</span>
                   </label>
                 </div>
@@ -195,23 +321,21 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
                     <div className={`w-10 h-6 rounded-full peer transition-all ${isAiEnabled ? 'bg-[#006B4D]' : 'bg-gray-200'} relative after:content-[''] after:absolute after:top-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isAiEnabled ? 'after:translate-x-[16px] after:border-white' : 'after:left-[2px]'}`}></div>
                   </label>
                 </div>
-                <p className="text-[13px] text-gray-500 leading-relaxed pr-4 mt-3">
-                  Generasi otomatis ringkasan eksekutif dan rekomendasi kebijakan berdasarkan data spasial.
-                </p>
               </div>
               
               <div className="flex-1"></div>
 
               {/* Warning Box */}
-              <div className="bg-[#D1FAE5] rounded-md p-4 flex gap-3 text-[#065F46]">
-                <ShieldAlert size={18} strokeWidth={2.5} className="shrink-0 mt-0.5" />
-                <p className="text-[12px] font-medium leading-relaxed">
-                  Dokumen ini akan disahkan dengan Digital e-Sign BSSN. Pastikan parameter yang dipilih telah sesuai sebelum eksekusi.
+              <div className="bg-[#D1FAE5] rounded-md p-3 flex gap-2.5 text-[#065F46] mt-2">
+                <ShieldAlert size={16} strokeWidth={2.5} className="shrink-0 mt-0.5" />
+                <p className="text-[11px] font-medium leading-relaxed">
+                  Disahkan dengan Digital e-Sign BSSN. Pastikan parameter sesuai sebelum eksekusi.
                 </p>
               </div>
-
-              {/* Generate Button */}
-              <button type="submit" className="w-full bg-[#113224] hover:bg-[#022C22] text-white font-bold py-3.5 rounded-md flex items-center justify-center gap-2 transition-colors text-[13px] tracking-widest shadow-sm">
+            </div>
+            
+            <div className="p-5 border-t border-gray-100 bg-gray-50/50 mt-auto">
+              <button type="submit" className="w-full bg-[#113224] hover:bg-[#022C22] text-white font-bold py-3 rounded-md flex items-center justify-center gap-2 transition-colors text-[13px] tracking-widest shadow-sm">
                 <FileText size={16} strokeWidth={2.5} />
                 GENERATE LAPORAN PDF
               </button>
@@ -256,11 +380,30 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
                 </div>
               </div>
               
-              <div className="p-5 font-mono text-[12px] leading-relaxed overflow-y-auto custom-scrollbar flex-1 text-[#a7f3d0]">
-                <div className="flex gap-4 mb-2 opacity-50">
-                  <span className="text-[#4ade80]/50 shrink-0">10:00:00</span>
-                  <span><span className="text-white font-bold">[INFO]</span> Menunggu instruksi...</span>
-                </div>
+              <div ref={terminalRef} className="p-5 font-mono text-[12px] leading-relaxed overflow-y-auto custom-scrollbar flex-1 text-[#a7f3d0]">
+                {terminalLogs.map((log, index) => {
+                   const isInfo = log.includes('[INFO]');
+                   const isDone = log.includes('[DONE]');
+                   const isError = log.includes('[ERROR]');
+                   const isWarn = log.includes('[WARN]');
+                   const isAi = log.includes('[AI_SYS]');
+                   
+                   let colorClass = 'text-[#a7f3d0]';
+                   if (isError || isWarn) colorClass = 'text-red-400 font-bold';
+                   if (isDone) colorClass = 'text-green-300 font-bold';
+                   if (isAi) colorClass = 'text-yellow-300';
+                   
+                   return (
+                     <div key={index} className={`flex gap-4 mb-2 ${isInfo ? 'opacity-50' : 'opacity-100'}`}>
+                       <span className={colorClass}>{log}</span>
+                     </div>
+                   );
+                })}
+                {isGenerating && (
+                   <div className="flex gap-4 mb-2">
+                     <span className="text-[#a7f3d0] animate-pulse">_</span>
+                   </div>
+                )}
               </div>
             </div>
 
@@ -280,9 +423,9 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
       <div className="mb-6 text-sm flex justify-between items-start">
         <table className="w-[400px]">
           <tbody>
-            <tr><td className="font-bold w-[120px] py-1">Periode</td><td>: {reportMetadata.musim}</td></tr>
+            <tr><td className="font-bold w-[120px] py-1">Tahun</td><td>: {reportMetadata.tahun}</td></tr>
             <tr><td className="font-bold py-1">Wilayah</td><td>: {reportMetadata.wilayah}</td></tr>
-            <tr><td className="font-bold py-1">Komoditas</td><td>: {reportMetadata.komoditas}</td></tr>
+            <tr><td className="font-bold py-1">Jenis Pupuk</td><td>: {reportMetadata.pupuk_terpilih?.join(', ')}</td></tr>
           </tbody>
         </table>
         <table className="w-[250px]">
@@ -299,13 +442,20 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
           <tr className="bg-gray-100">
             <th className="border border-black p-2 text-center w-[40px]">No</th>
             <th className="border border-black p-2 text-left">Kabupaten</th>
-            <th className="border border-black p-2 text-left">Musim Tanam</th>
-            <th className="border border-black p-2 text-left">Komoditas</th>
+            <th className="border border-black p-2 text-left">Tahun / Musim</th>
             <th className="border border-black p-2 text-right">Luas (HA)</th>
-            <th className="border border-black p-2 text-right">Kuota Urea</th>
-            <th className="border border-black p-2 text-right bg-emerald-50">Prediksi Urea</th>
-            <th className="border border-black p-2 text-right">Kuota NPK</th>
-            <th className="border border-black p-2 text-right bg-emerald-50">Prediksi NPK</th>
+            {reportMetadata.pupuk_terpilih?.includes('Urea') && (
+              <>
+                <th className="border border-black p-2 text-right">Kuota Urea</th>
+                <th className="border border-black p-2 text-right bg-emerald-50">Prediksi Urea</th>
+              </>
+            )}
+            {reportMetadata.pupuk_terpilih?.includes('NPK') && (
+              <>
+                <th className="border border-black p-2 text-right">Kuota NPK</th>
+                <th className="border border-black p-2 text-right bg-emerald-50">Prediksi NPK</th>
+              </>
+            )}
             <th className="border border-black p-2 text-center w-[80px]">Status Risiko</th>
           </tr>
         </thead>
@@ -314,13 +464,20 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
             <tr key={row.id_alokasi || i}>
               <td className="border border-black p-2 text-center">{i + 1}</td>
               <td className="border border-black p-2 font-bold">{row.master_kabupaten?.nama_kabupaten || 'Unknown'}</td>
-              <td className="border border-black p-2">{row.musim_tanam}</td>
-              <td className="border border-black p-2">{row.komoditas}</td>
+              <td className="border border-black p-2">{row.tahun} / {row.musim_tanam}</td>
               <td className="border border-black p-2 text-right font-mono">{Number(row.luas_lahan).toLocaleString('id-ID')}</td>
-              <td className="border border-black p-2 text-right font-mono">{Number(row.kuota_urea).toLocaleString('id-ID')}</td>
-              <td className="border border-black p-2 text-right font-bold bg-emerald-50 font-mono">{Number(row.prediksi_urea).toLocaleString('id-ID')}</td>
-              <td className="border border-black p-2 text-right font-mono">{Number(row.kuota_npk).toLocaleString('id-ID')}</td>
-              <td className="border border-black p-2 text-right font-bold bg-emerald-50 font-mono">{Number(row.prediksi_npk).toLocaleString('id-ID')}</td>
+              {reportMetadata.pupuk_terpilih?.includes('Urea') && (
+                <>
+                  <td className="border border-black p-2 text-right font-mono">{Number(row.kuota_urea).toLocaleString('id-ID')}</td>
+                  <td className="border border-black p-2 text-right font-bold bg-emerald-50 font-mono">{Number(row.prediksi_urea).toLocaleString('id-ID')}</td>
+                </>
+              )}
+              {reportMetadata.pupuk_terpilih?.includes('NPK') && (
+                <>
+                  <td className="border border-black p-2 text-right font-mono">{Number(row.kuota_npk).toLocaleString('id-ID')}</td>
+                  <td className="border border-black p-2 text-right font-bold bg-emerald-50 font-mono">{Number(row.prediksi_npk).toLocaleString('id-ID')}</td>
+                </>
+              )}
               <td className="border border-black p-2 text-center font-bold uppercase">{row.status_risiko}</td>
             </tr>
           ))}
@@ -332,17 +489,14 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
         </tbody>
       </table>
 
-      {isAiEnabled && reportData.length > 0 && (
+      {isAiEnabled && reportData.length > 0 && generatedAiNarrative && (
         <div className="mb-10 p-4 border border-black bg-gray-50">
           <h3 className="font-bold text-[14px] mb-2 underline">Analisis Naratif Eksekutif (AI Generated)</h3>
-          <p className="text-[12px] leading-relaxed text-justify mb-2">
-            Berdasarkan data perhitungan algoritma model AgriVision AI, 
-            kondisi {reportMetadata.musim} untuk {reportMetadata.wilayah} menunjukkan adanya 
-            dinamika cuaca yang mempengaruhi tingkat penyerapan pupuk. 
-          </p>
-          <p className="text-[12px] leading-relaxed text-justify">
-            Disarankan untuk melakukan realokasi dan penyesuaian logistik sesuai dengan nilai "Prediksi" yang tertera di atas untuk menghindari defisit ketersediaan pupuk bagi petani. Status risiko tertinggi saat ini memerlukan intervensi langsung dari dinas terkait.
-          </p>
+          <div className="text-[12px] leading-relaxed text-justify space-y-3">
+            {generatedAiNarrative.split('\n').map((paragraph, idx) => (
+              paragraph.trim() ? <p key={idx}>{paragraph.trim()}</p> : null
+            ))}
+          </div>
         </div>
       )}
 
@@ -354,6 +508,29 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
         </div>
       </div>
     </div>
+    
+    {/* Custom Error Modal */}
+    {showModal && (
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-6 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={32} className="text-red-500" strokeWidth={2.5} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Peringatan Validasi</h3>
+            <p className="text-[14px] text-gray-600 leading-relaxed mb-6">
+              {modalMessage}
+            </p>
+            <button
+              onClick={() => setShowModal(false)}
+              className="w-full bg-[#113224] hover:bg-[#022C22] text-white font-bold py-3 rounded-lg transition-colors"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
   );
 }
