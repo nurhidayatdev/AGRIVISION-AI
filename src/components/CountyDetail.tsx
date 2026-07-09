@@ -10,8 +10,10 @@ import {
   Download,
   Sparkles,
   CheckCircle,
+  CheckCircle2,
   Clock,
-  FileText
+  FileText,
+  AlertCircle
 } from 'lucide-react';
 
 export default function CountyDetail({ 
@@ -29,6 +31,8 @@ export default function CountyDetail({
   const [isLoading, setIsLoading] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ title: '', message: '', type: 'success' });
 
   const fetchDetail = async () => {
     if (!idKabupaten) {
@@ -48,6 +52,8 @@ export default function CountyDetail({
           status_risiko,
           prediksi_urea,
           kuota_urea,
+          prediksi_npk,
+          kuota_npk,
           narasi_rekomendasi,
           cuaca_anomali,
           master_kabupaten ( nama_kabupaten, kode_bps )
@@ -73,6 +79,8 @@ export default function CountyDetail({
         status_risiko: detailData.status_risiko,
         prediksi_urea: detailData.prediksi_urea,
         kuota_urea: detailData.kuota_urea,
+        prediksi_npk: detailData.prediksi_npk,
+        kuota_npk: detailData.kuota_npk,
         narasi_rekomendasi: detailData.narasi_rekomendasi,
         cuaca_anomali: detailData.cuaca_anomali
       };
@@ -204,7 +212,7 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
         if (usersData && usersData.length > 0) {
           for (const user of usersData) {
             if (user.nomor_wa) {
-              const pesanWa = `⚠️ *AGRIVISION-AI ALERT* ⚠️\n*Wilayah:* Kab. ${data.nama_kabupaten} ${user.role === 'PPL' ? '(Kec. ' + user.nama_kecamatan + ')' : ''}\n*Status:* ${statusUpper}\n*Rekomendasi:* ${parsed.narasi_rekomendasi}\n\nSilakan login ke sistem untuk detail lebih lanjut.`;
+              const pesanWa = `Halo, *${user.nama_lengkap}*!\n\n⚠️ *AGRIVISION-AI ALERT* ⚠️\n*Wilayah:* Kab. ${data.nama_kabupaten} ${user.role === 'PPL' ? '(Kec. ' + user.nama_kecamatan + ')' : ''}\n*Status:* ${statusUpper}\n*Rekomendasi:* ${parsed.narasi_rekomendasi}\n\nSilakan login ke sistem untuk melihat detail selengkapnya.`;
               await sendWhatsAppMessage(user.nomor_wa, pesanWa);
             }
           }
@@ -212,11 +220,13 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
       }
 
       await fetchDetail();
-      alert('AI Gemini berhasil dianalisis ulang, dan WhatsApp Notifikasi telah diproses.');
+      setModalConfig({ title: 'Berhasil', message: 'AI Gemini berhasil dianalisis ulang, dan WhatsApp Notifikasi telah diproses.', type: 'success' });
+      setShowModal(true);
 
     } catch (err: any) {
       console.error(err);
-      alert('Gagal menjalankan Gemini: ' + err.message);
+      setModalConfig({ title: 'Gagal', message: 'Gagal menjalankan Gemini: ' + err.message, type: 'error' });
+      setShowModal(true);
     } finally {
       setIsAiLoading(false);
     }
@@ -245,6 +255,11 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
   const kuota_urea = data.kuota_urea || 0;
   const defisit = prediksi_urea - kuota_urea;
   const defisit_pct = kuota_urea > 0 ? (defisit / kuota_urea) * 100 : 0;
+
+  const prediksi_npk = data.prediksi_npk || 0;
+  const kuota_npk = data.kuota_npk || 0;
+  const defisit_npk = prediksi_npk - kuota_npk;
+  const defisit_npk_pct = kuota_npk > 0 ? (defisit_npk / kuota_npk) * 100 : 0;
 
   const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
@@ -297,37 +312,71 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
 
             {/* Quota vs Prediction Card */}
             <div className="bg-white rounded-md border border-gray-200 shadow-[0_2px_10px_rgb(0,0,0,0.02)] p-6">
-                 <div className="flex items-center gap-2 mb-2 text-[#006B4D]">
-                     <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Kuota Urea Saat Ini</span>
-                 </div>
-                 <div className="flex items-baseline gap-1.5 mb-6">
-                     <span className="text-[32px] font-extrabold text-[#113224] leading-none tracking-tighter">{formatNumber(kuota_urea)}</span>
-                     <span className="text-[12px] font-bold text-gray-500">Ton</span>
-                 </div>
-
-                 <div className="flex items-center gap-2 mb-2 text-[#006B4D]">
-                     <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700">Prediksi Kebutuhan AI</span>
-                 </div>
-                 <div className="flex items-baseline gap-1.5 mb-6">
-                     <span className="text-[32px] font-extrabold text-[#113224] leading-none tracking-tighter">{formatNumber(prediksi_urea)}</span>
-                     <span className="text-[12px] font-bold text-gray-500">Ton</span>
-                 </div>
-
-                 {defisit > 0 ? (
-                 <div className="bg-red-50 border border-red-100 rounded p-4 flex flex-col gap-1.5 items-start">
-                     <div className="flex items-center gap-1.5 text-[#DC2626]">
-                         <span className="text-[11px] font-bold uppercase tracking-wider">Status Pasokan</span>
+                 <div className="grid grid-cols-2 gap-3">
+                   <div className="flex flex-col">
+                     <div className="mb-3">
+                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-tight block mb-0.5">Kuota Urea Saat Ini</span>
+                         <div className="flex flex-wrap items-baseline gap-1">
+                             <span className="text-[20px] font-extrabold text-[#113224] leading-none tracking-tight">{formatNumber(kuota_urea)}</span>
+                             <span className="text-[11px] font-bold text-gray-500">Ton</span>
+                         </div>
                      </div>
-                     <span className="text-[16px] font-extrabold text-[#DC2626] tracking-tight">Defisit {formatNumber(defisit)} Ton ({defisit_pct.toFixed(1)}%)</span>
-                 </div>
-                 ) : (
-                 <div className="bg-emerald-50 border border-emerald-100 rounded p-4 flex flex-col gap-1.5 items-start">
-                     <div className="flex items-center gap-1.5 text-[#059669]">
-                         <span className="text-[11px] font-bold uppercase tracking-wider">Status Pasokan</span>
+                     
+                     <div className="mb-5">
+                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-tight block mb-0.5">Prediksi AI (Urea)</span>
+                         <div className="flex flex-wrap items-baseline gap-1">
+                             <span className="text-[20px] font-extrabold text-[#113224] leading-none tracking-tight">{formatNumber(prediksi_urea)}</span>
+                             <span className="text-[11px] font-bold text-gray-500">Ton</span>
+                         </div>
                      </div>
-                     <span className="text-[16px] font-extrabold text-[#059669] tracking-tight">Surplus/Aman</span>
+                     
+                     <div className="mt-auto">
+                       {defisit > 0 ? (
+                       <div className="bg-red-50 border border-red-100 rounded p-2.5 flex flex-col gap-1 items-start">
+                           <span className="text-[9px] font-bold uppercase tracking-wider text-[#DC2626]">Status (Urea)</span>
+                           <span className="text-[12px] font-extrabold text-[#DC2626] tracking-tight">Defisit {formatNumber(defisit)}T</span>
+                       </div>
+                       ) : (
+                       <div className="bg-emerald-50 border border-emerald-100 rounded p-2.5 flex flex-col gap-1 items-start">
+                           <span className="text-[9px] font-bold uppercase tracking-wider text-[#059669]">Status (Urea)</span>
+                           <span className="text-[12px] font-extrabold text-[#059669] tracking-tight">Surplus/Aman</span>
+                       </div>
+                       )}
+                     </div>
+                   </div>
+                   
+                   <div className="flex flex-col">
+                     <div className="mb-3">
+                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-tight block mb-0.5">Kuota NPK Saat Ini</span>
+                         <div className="flex flex-wrap items-baseline gap-1">
+                             <span className="text-[20px] font-extrabold text-[#113224] leading-none tracking-tight">{formatNumber(kuota_npk)}</span>
+                             <span className="text-[11px] font-bold text-gray-500">Ton</span>
+                         </div>
+                     </div>
+                     
+                     <div className="mb-5">
+                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-tight block mb-0.5">Prediksi AI (NPK)</span>
+                         <div className="flex flex-wrap items-baseline gap-1">
+                             <span className="text-[20px] font-extrabold text-[#113224] leading-none tracking-tight">{formatNumber(prediksi_npk)}</span>
+                             <span className="text-[11px] font-bold text-gray-500">Ton</span>
+                         </div>
+                     </div>
+                     
+                     <div className="mt-auto">
+                       {defisit_npk > 0 ? (
+                       <div className="bg-red-50 border border-red-100 rounded p-2.5 flex flex-col gap-1 items-start">
+                           <span className="text-[9px] font-bold uppercase tracking-wider text-[#DC2626]">Status (NPK)</span>
+                           <span className="text-[12px] font-extrabold text-[#DC2626] tracking-tight">Defisit {formatNumber(defisit_npk)}T</span>
+                       </div>
+                       ) : (
+                       <div className="bg-emerald-50 border border-emerald-100 rounded p-2.5 flex flex-col gap-1 items-start">
+                           <span className="text-[9px] font-bold uppercase tracking-wider text-[#059669]">Status (NPK)</span>
+                           <span className="text-[12px] font-extrabold text-[#059669] tracking-tight">Surplus/Aman</span>
+                       </div>
+                       )}
+                     </div>
+                   </div>
                  </div>
-                 )}
             </div>
 
             {/* Action Button */}
@@ -447,6 +496,29 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
         </div>
 
       </main>
+      
+      {/* Custom Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${modalConfig.type === 'success' ? 'bg-[#D1DFD9] text-[#10B981]' : 'bg-red-100 text-red-500'}`}>
+                {modalConfig.type === 'success' ? <CheckCircle2 size={32} strokeWidth={2.5} /> : <AlertCircle size={32} strokeWidth={2.5} />}
+              </div>
+              <h3 className="text-xl font-extrabold text-[#113224] mb-2">{modalConfig.title}</h3>
+              <p className="text-[14px] text-gray-600 leading-relaxed mb-6">
+                {modalConfig.message}
+              </p>
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-full bg-[#113224] hover:bg-[#022C22] text-white font-bold py-3 rounded-lg transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
