@@ -586,17 +586,19 @@ const getTemperature = (cuaca: string, nama: string) => {
               <p className="text-white/80 text-[12px] md:text-[14px] font-medium">Analisis prediktif berbasis data cuaca dan realisasi e-RDKK bulan ini.</p>
             </div>
             <div className="flex items-center gap-2 md:gap-3 relative z-10 flex-wrap">
-              <div className="flex items-center gap-2 text-white/90 text-[11px] md:text-[12px] bg-white/10 px-2.5 py-1.5 rounded border border-white/20">
+              <div className="flex items-center gap-2 text-white/90 text-[11px] md:text-[12px] bg-white/10 px-2.5 py-1.5 rounded border border-white/20 shrink-0">
                 <div className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></div>
                 AI Auto-Sync Aktif
               </div>
               <button 
                 onClick={handleRunAllGemini}
                 disabled={isAiLoading}
-                className="bg-[#34D399] hover:bg-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed text-[#022C22] font-bold px-3 md:px-4 py-2 rounded flex items-center gap-2 transition-colors shadow-sm text-[11px] md:text-[12px] tracking-wide"
+                className="bg-[#34D399] hover:bg-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed text-[#022C22] font-bold px-3 md:px-4 py-2 rounded flex items-center justify-center gap-2 transition-colors shadow-sm text-[11px] md:text-[12px] tracking-wide w-[160px] md:w-[180px]"
               >
-                <Sparkles size={13} className="text-[#022C22] fill-[#022C22]" />
-                {isAiLoading ? (aiProgress || 'Menganalisis...') : 'Jalankan Gemini AI'}
+                <Sparkles size={13} className="text-[#022C22] fill-[#022C22] shrink-0" />
+                <span className="truncate">
+                  {isAiLoading ? (aiProgress || 'Menganalisis...') : 'Jalankan Gemini AI'}
+                </span>
               </button>
             </div>
           </div>
