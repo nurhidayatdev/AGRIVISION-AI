@@ -85,8 +85,14 @@ export default function Login() {
 
       let isPasswordMatch = false;
       
-      if (user.password_hash && user.password_hash !== '') {
-        isPasswordMatch = await bcrypt.compare(password, user.password_hash);
+      // Fallback jika password dari MySQL/Supabase kosong
+      if (!user.password_hash || user.password_hash === '') {
+         // Bypass sementara untuk kemudahan testing prototype
+         if (password === 'Admin123!') {
+             isPasswordMatch = true;
+         }
+      } else {
+         isPasswordMatch = await bcrypt.compare(password, user.password_hash);
       }
       
       if (!isPasswordMatch) {
