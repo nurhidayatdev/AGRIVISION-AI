@@ -14,7 +14,12 @@ const getPasswordErrors = (pass: string) => {
   return errors;
 };
 
-export default function Login({ onLogin }: { onLogin: (role: string) => void }) {
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+export default function Login() {
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
   const [nip, setNip] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +36,14 @@ export default function Login({ onLogin }: { onLogin: (role: string) => void }) 
       setRememberMe(true);
     }
   }, []);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'PPL') navigate('/laporan_ppl', { replace: true });
+      else navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,15 +85,8 @@ export default function Login({ onLogin }: { onLogin: (role: string) => void }) 
 
       let isPasswordMatch = false;
       
-      // Fallback jika password dari MySQL kosong (akibat error ekspor sebelumnya)
-      if (!user.password_hash || user.password_hash === '') {
-         // Bypass sementara untuk kemudahan testing prototype
-         if (password === 'Admin123!') {
-             isPasswordMatch = true;
-             // Opsional: di aplikasi nyata, Anda sebaiknya meng-update password_hash di sini
-         }
-      } else {
-         isPasswordMatch = await bcrypt.compare(password, user.password_hash);
+      if (user.password_hash && user.password_hash !== '') {
+        isPasswordMatch = await bcrypt.compare(password, user.password_hash);
       }
       
       if (!isPasswordMatch) {
@@ -101,7 +107,8 @@ export default function Login({ onLogin }: { onLogin: (role: string) => void }) 
           nama_kabupaten: user.master_kabupaten ? (Array.isArray(user.master_kabupaten) ? user.master_kabupaten[0]?.nama_kabupaten : (user.master_kabupaten as any)?.nama_kabupaten) : null,
           is_provinsi_admin: user.role === 'Admin Provinsi'
       };
-      localStorage.setItem('agrivision_session', JSON.stringify(sessionData));
+      // Panggil login dari AuthContext
+      login(sessionData);
 
       if (rememberMe) {
         localStorage.setItem('agrivision_saved_nip', nip);
@@ -109,7 +116,11 @@ export default function Login({ onLogin }: { onLogin: (role: string) => void }) 
         localStorage.removeItem('agrivision_saved_nip');
       }
       
-      onLogin(user.role);
+      if (user.role === 'PPL') {
+        navigate('/laporan_ppl');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error('Login error:', err);
       setError('Tidak dapat terhubung ke server Supabase.');

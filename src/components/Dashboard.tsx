@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabaseClient';
 import { sendWhatsAppMessage } from '../utils/fonnteClient';
 import {
@@ -18,10 +19,14 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import Navbar from './Navbar';
+import { MapData, DashboardData, LaporanPpl } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
-export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string, id?: number) => void }) {
-  const [data, setData] = useState<any>(null);
-  const [activeFocusArea, setActiveFocusArea] = useState<any>(null);
+export default function Dashboard() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [activeFocusArea, setActiveFocusArea] = useState<MapData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState('');
@@ -35,21 +40,15 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
 
   const fetchDashboardData = async () => {
     try {
-      const sessionStr = localStorage.getItem('agrivision_session');
-      const userSession = sessionStr ? JSON.parse(sessionStr) : null;
+      if (!user) return;
 
-      if (!userSession) {
-        onLogout();
+      if (user.role === 'Admin Kabupaten') {
+        navigate('/kabupaten/' + user.id_kabupaten);
         return;
       }
 
-      if (userSession.role === 'Admin Kabupaten') {
-        onNavigate('county_detail', userSession.id_kabupaten);
-        return;
-      }
-
-      if (userSession.role === 'PPL') {
-        onNavigate('laporan_ppl');
+      if (user.role === 'PPL') {
+        navigate('/laporan_ppl');
         return;
       }
 
@@ -60,8 +59,8 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
           master_kabupaten (nama_kabupaten, koordinat_lat, koordinat_lng)
         `);
 
-      if (!userSession.is_provinsi_admin && userSession.id_kabupaten) {
-        query = query.eq('id_kabupaten', userSession.id_kabupaten);
+      if (!user.is_provinsi_admin && user.id_kabupaten) {
+        query = query.eq('id_kabupaten', user.id_kabupaten);
       }
 
       const { data: allData, error: dbError } = await query;
@@ -79,10 +78,10 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
       }
 
       let totalLahan = 0, totalUrea = 0, totalNpk = 0;
-      const mapDataMap = new Map();
-      const kritisData: any[] = [];
+      const mapDataMap = new Map<number, MapData>();
+      const kritisData: MapData[] = [];
 
-      filteredData.forEach((row: any) => {
+      filteredData.forEach((row) => {
         totalLahan += Number(row.luas_lahan) || 0;
         totalUrea += Number(row.kuota_urea) || 0;
         totalNpk += Number(row.kuota_npk) || 0;
@@ -116,14 +115,14 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
       const focus_area = kritisData.length > 0 ? kritisData[0] : (map_data.length > 0 ? map_data[0] : null);
 
       setData({
-          totals: {
-              lahan: totalLahan,
-              urea: totalUrea,
-              npk: totalNpk
-          },
-          kritis_data: kritisData,
-          map_data: map_data,
-          user: userSession
+        totals: {
+          lahan: totalLahan,
+          urea: totalUrea,
+          npk: totalNpk
+        },
+        kritis_data: kritisData,
+        map_data,
+        user
       });
       setActiveFocusArea(focus_area);
 
@@ -151,7 +150,7 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [onLogout]);
+  }, [user]);
 
   // Initialize Leaflet Map and Update Markers
   useEffect(() => {
@@ -186,7 +185,7 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
     if (markerLayerRef.current && data.map_data) {
       markerLayerRef.current.clearLayers();
 
-      data.map_data.forEach((kab: any) => {
+      data.map_data.forEach((kab: MapData) => {
         if (kab.koordinat_lat && kab.koordinat_lng) {
           const status = kab.status_risiko.toLowerCase();
           let color = '#10B981'; // Aman
@@ -256,7 +255,12 @@ export default function Dashboard({ onLogout, onNavigate }: { onLogout: () => vo
       setAiProgress(`Menganalisis (${i + 1}/${totalToAnalyze}): ${namaKab}...`);
       
       try {
-        let aiResult: any = null;
+        let aiResult: {
+            prediksi_urea: number;
+            prediksi_npk: number;
+            status_risiko: string;
+            narasi_rekomendasi: string;
+        } | null = null;
 
         const cleanKabName = namaKab.replace('Kabupaten ', '').replace('Kota ', '');
         const hashWeatherFallback = (cleanKabName.charCodeAt(0) + cleanKabName.charCodeAt(cleanKabName.length - 1)) % 10;
@@ -452,12 +456,12 @@ Kembalikan respon DALAM FORMAT JSON murni (tanpa markdown markdown) dengan struk
         <AlertTriangle size={48} className="text-red-500 mb-4" />
         <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
         <p className="text-gray-600 mb-6">{error}</p>
-        <button onClick={onLogout} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Login</button>
+        <button onClick={logout} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Login</button>
       </div>
     );
   }
 
-  const { totals, kritis_data, user } = data;
+  const { totals, kritis_data } = data;
   const formatNumber = (num: number) => {
   return new Intl.NumberFormat('id-ID').format(num);
 };
@@ -480,12 +484,12 @@ const getTemperature = (cuaca: string, nama: string) => {
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans relative">
-      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="dashboard" />
+      <Navbar />
 
       {/* Filter / Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <button onClick={() => navigate('/dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
           <span className="text-gray-900">{user?.is_provinsi_admin ? 'SULAWESI SELATAN' : user?.nama_kabupaten || 'KABUPATEN'}</span>
         </div>
@@ -538,7 +542,7 @@ const getTemperature = (cuaca: string, nama: string) => {
             </div>
 
             <div className="p-4 md:p-5 flex flex-col gap-4 md:gap-6">
-              {kritis_data.length > 0 ? kritis_data.map((row: any, idx: number) => {
+              {kritis_data.length > 0 ? kritis_data.map((row: MapData, idx: number) => {
                 const status = row.status_risiko.toLowerCase();
                 const isKritis = status === 'kritis' || status === 'defisit';
                 const bgClass = isKritis ? 'bg-[#B91C1C]' : 'bg-[#D97706]';
@@ -660,7 +664,7 @@ const getTemperature = (cuaca: string, nama: string) => {
 
                   <button 
                     onClick={() => {
-                      onNavigate('county_detail', activeFocusArea.id_kabupaten);
+                      navigate('/kabupaten/' + activeFocusArea.id_kabupaten);
                     }}
                     className="w-full py-2.5 border border-[#006B4D] text-[#006B4D] font-bold text-[13px] rounded hover:bg-[#006B4D] hover:text-white transition-colors tracking-wide"
                   >

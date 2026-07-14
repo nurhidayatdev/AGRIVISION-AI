@@ -1,33 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from './Navbar';
-import logo from '../assets/logo_agrivision_ai.png';
+import { AlokasiPupuk, LaporanPpl } from '../types';
 import { supabase } from '../utils/supabaseClient';
 import { sendWhatsAppMessage } from '../utils/fonnteClient';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ArrowLeft,
   AlertTriangle,
   Printer,
   Download,
   Sparkles,
-  CheckCircle,
   CheckCircle2,
   Clock,
   FileText,
   AlertCircle
 } from 'lucide-react';
 
-export default function CountyDetail({ 
-  onLogout, 
-  onNavigate, 
-  idKabupaten 
-}: { 
-  onLogout: () => void, 
-  onNavigate: (page: string, id?: number) => void,
-  idKabupaten: number | null
-}) {
-  const [data, setData] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [laporanPpl, setLaporanPpl] = useState<any[]>([]);
+export default function CountyDetail() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const idKabupaten = id ? parseInt(id, 10) : null;
+  const [data, setData] = useState<AlokasiPupuk & { nama_kabupaten?: string; kode_bps?: string; id?: number } | null>(null);
+  const [history, setHistory] = useState<{dikirim_pada: string; pesan_ai: string;}[]>([]);
+  const [laporanPpl, setLaporanPpl] = useState<LaporanPpl[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +32,7 @@ export default function CountyDetail({
   const [modalConfig, setModalConfig] = useState({ title: '', message: '', type: 'success' });
 
   const fetchDetail = async () => {
+    if (!user) return;
     if (!idKabupaten) {
       setError('ID Kabupaten tidak valid.');
       setIsLoading(false);
@@ -108,7 +106,7 @@ export default function CountyDetail({
 
       if (pplErr) throw pplErr;
 
-      const historyList = historyData.map((h: any) => ({
+      const historyList = historyData.map((h: {last_analyzed_at: string, narasi_rekomendasi: string}) => ({
         dikirim_pada: h.last_analyzed_at || new Date().toISOString(),
         pesan_ai: h.narasi_rekomendasi
       }));
@@ -117,9 +115,9 @@ export default function CountyDetail({
       setHistory(historyList);
       setLaporanPpl(pplData || []);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError('Gagal memuat detail dari Supabase: ' + (err?.message || JSON.stringify(err)));
+      setError('Gagal memuat detail dari Supabase: ' + (err instanceof Error ? err.message : JSON.stringify(err)));
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +125,7 @@ export default function CountyDetail({
 
   useEffect(() => {
     fetchDetail();
-  }, [idKabupaten, onLogout]);
+  }, [idKabupaten, user]);
 
   const handleRunGemini = async () => {
     if (!data?.id) return;
@@ -223,9 +221,9 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
       setModalConfig({ title: 'Berhasil', message: 'AI Gemini berhasil dianalisis ulang, dan WhatsApp Notifikasi telah diproses.', type: 'success' });
       setShowModal(true);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setModalConfig({ title: 'Gagal', message: 'Gagal menjalankan Gemini: ' + err.message, type: 'error' });
+      setModalConfig({ title: 'Gagal', message: 'Gagal menjalankan Gemini: ' + (err instanceof Error ? err.message : String(err)), type: 'error' });
       setShowModal(true);
     } finally {
       setIsAiLoading(false);
@@ -242,7 +240,7 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
         <AlertTriangle size={48} className="text-red-500 mb-4" />
         <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
         <p className="text-gray-600 mb-6">{error}</p>
-        <button onClick={() => onNavigate('dashboard')} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Dashboard</button>
+        <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Dashboard</button>
       </div>
     );
   }
@@ -266,22 +264,29 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
       
-      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
+      <Navbar />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
-            <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+            <button onClick={() => navigate('/dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
             <span>/</span>
-            <button onClick={() => onNavigate('kelola_data')} className="hover:text-gray-700 cursor-pointer transition-colors">KELOLA DATA</button>
+            <button onClick={() => navigate('/kelola_data')} className="hover:text-gray-700 cursor-pointer transition-colors">KELOLA DATA</button>
             <span>/</span>
             <span className="text-gray-900">{data.nama_kabupaten}</span>
         </div>
         <div className="flex items-center gap-5 text-[12px] font-bold text-gray-600">
-            <a href={`http://localhost/AGRIVISION-AI/backend_php/proses_cetak_pdf.php?musim_tanam=${data.musim_tanam}&id_kabupaten=${data.id_kabupaten}&sertakan_ai=true`} className="flex items-center gap-1.5 hover:text-gray-900 transition-colors">
+            <a 
+                href={`/api/cetak-pdf?musim_tanam=${data.musim_tanam}&id_kabupaten=${data.id_kabupaten}&sertakan_ai=true`}
+                className="flex items-center gap-1.5 hover:text-gray-900 transition-colors"
+                title="Fitur unduh membutuhkan PHP backend">
                 <Download size={14} strokeWidth={2.5} /> Unduh
             </a>
-            <a href={`http://localhost/AGRIVISION-AI/backend_php/proses_cetak_pdf.php?musim_tanam=${data.musim_tanam}&id_kabupaten=${data.id_kabupaten}&sertakan_ai=true`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-gray-900 transition-colors">
+            <a 
+                href={`/api/cetak-pdf?musim_tanam=${data.musim_tanam}&id_kabupaten=${data.id_kabupaten}&sertakan_ai=true`}
+                target="_blank" rel="noreferrer"
+                className="flex items-center gap-1.5 hover:text-gray-900 transition-colors"
+                title="Fitur cetak membutuhkan PHP backend">
                 <Printer size={14} strokeWidth={2.5} /> Cetak
             </a>
         </div>
@@ -429,7 +434,7 @@ Anda HARUS membalas HANYA dengan format JSON yang valid dan tanpa format markdow
                         </h3>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                        {laporanPpl.length > 0 ? laporanPpl.map((l: any) => (
+                        {laporanPpl.length > 0 ? laporanPpl.map((l: LaporanPpl) => (
                             <div key={l.id_laporan} className="border border-gray-100 rounded-md p-3 text-[12px] bg-white">
                                 <div className="flex justify-between items-start mb-1">
                                     <span className="font-bold text-[#113224]">{l.nama_kecamatan}</span>

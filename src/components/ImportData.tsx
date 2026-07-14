@@ -1,10 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Navbar from './Navbar';
-import logo from '../assets/logo_agrivision_ai.png';
 import {
-  Bell,
-  User,
-  LogOut,
   ArrowLeft,
   FileText,
   CheckCircle2,
@@ -14,8 +10,12 @@ import {
   Loader2
 } from 'lucide-react';
 import { supabase } from '../utils/supabaseClient';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-export default function ImportData({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
+export default function ImportData() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -130,7 +130,7 @@ ${combinedCsvData}
 
       const resultText = geminiData.candidates[0].content.parts[0].text;
       const parsedData = JSON.parse(resultText);
-      const dataToInsert: any[] = [];
+      const dataToInsert: Record<string, string | number>[] = [];
 
       // 5. Petakan nama_kabupaten ke id_kabupaten dan siapkan payload
       for (const item of parsedData) {
@@ -170,30 +170,30 @@ ${combinedCsvData}
       setShowModal(true);
       setFiles([]);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       setIsUploading(false);
-      setUploadMessage(`TERJADI KESALAHAN:\n${error.message}`);
+      setUploadMessage(`TERJADI KESALAHAN:\n${error instanceof Error ? error.message : String(error)}`);
       setShowModal(true);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
-      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
+      <Navbar />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center justify-between shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <button onClick={() => navigate('/dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
-          <button onClick={() => onNavigate('kelola_data')} className="hover:text-gray-700 cursor-pointer transition-colors hidden sm:inline">MANAJEMEN DATA</button>
+          <button onClick={() => navigate('/kelola_data')} className="hover:text-gray-700 cursor-pointer transition-colors hidden sm:inline">MANAJEMEN DATA</button>
           <span className="hidden sm:inline">/</span>
           <span className="text-gray-900">IMPORT BERKAS INTEGRASI</span>
         </div>
         
         <button 
-          onClick={() => onNavigate('kelola_data')}
+          onClick={() => navigate('/kelola_data')}
           className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors uppercase tracking-wider"
         >
           <ArrowLeft size={14} strokeWidth={2.5} />

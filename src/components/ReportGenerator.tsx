@@ -14,11 +14,16 @@ import {
   Terminal,
   AlertCircle
 } from 'lucide-react';
+import { MasterKabupaten, AlokasiPupuk } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
-  const [kabupatens, setKabupatens] = useState<any[]>([]);
+export default function ReportGenerator() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [kabupatens, setKabupatens] = useState<MasterKabupaten[]>([]);
   const [isAiEnabled, setIsAiEnabled] = useState(true);
-  const [reportData, setReportData] = useState<any[]>([]);
+  const [reportData, setReportData] = useState<AlokasiPupuk[]>([]);
   const [reportMetadata, setReportMetadata] = useState<any>({ tahun: '', wilayah: '', pupuk_terpilih: ['Urea', 'NPK'] });
   const [generatedAiNarrative, setGeneratedAiNarrative] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -144,7 +149,10 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
        if (apiKey) {
          try {
            const wilayahTeks = idKab === '' ? 'Semua Kabupaten/Kota' : (data[0].master_kabupaten?.nama_kabupaten || 'Wilayah Tertentu');
-           const summaryData = data.slice(0, 15).map((d: any) => `${d.master_kabupaten?.nama_kabupaten || ''}: Urea ${d.kuota_urea} vs ${d.prediksi_urea}, Status ${d.status_risiko}`).join('; ');
+           const summaryData = data.slice(0, 15).map((d: AlokasiPupuk) => {
+             const mk = Array.isArray(d.master_kabupaten) ? d.master_kabupaten[0] : d.master_kabupaten;
+             return `${mk?.nama_kabupaten || ''}: Urea ${d.kuota_urea} vs ${d.prediksi_urea}, Status ${d.status_risiko}`;
+           }).join('; ');
            
            const prompt = `Buatkan analisis naratif eksekutif yang ditujukan kepada pemangku kepentingan (Gubernur, Dinas Pertanian, dan Kebijakan Publik) terkait alokasi dan prediksi pupuk di ${wilayahTeks} tahun ${tahunTerpilih.join(', ')}. Analisis harus terdiri dari 2-3 paragraf komprehensif yang mencakup: 1. Kondisi umum ketersediaan pupuk vs prediksi kebutuhan. 2. Identifikasi area dengan risiko defisit tinggi atau kritis. 3. Rekomendasi kebijakan logistik atau intervensi strategis. Gunakan data sampel berikut sebagai basis fakta: ${summaryData}. Gunakan bahasa Indonesia yang sangat formal, profesional, dan berwibawa. Jangan gunakan format markdown (seperti tebal/miring), gunakan teks paragraf biasa saja.`;
            
@@ -197,12 +205,12 @@ export default function ReportGenerator({ onLogout, onNavigate }: { onLogout: ()
     <div className="w-full">
       {/* -------------------- LAYAR BROWSER BIASA -------------------- */}
       <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans print:hidden">
-      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="cetak_laporan" />
+      <Navbar />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <button onClick={() => navigate('/dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
           <span className="text-gray-900">CETAK LAPORAN</span>
         </div>

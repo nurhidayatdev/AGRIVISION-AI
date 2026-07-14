@@ -2,67 +2,58 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import { useState } from 'react';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import DataManagement from './components/DataManagement';
-import ImportData from './components/ImportData';
-import ReportGenerator from './components/ReportGenerator';
-import CountyDetail from './components/CountyDetail';
-import NotificationHistory from './components/NotificationHistory';
-import UserManagement from './components/UserManagement';
-import PplReport from './components/PplReport';
+import { Suspense, lazy } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Lazy load komponen halaman
+const Login = lazy(() => import('./components/Login'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const DataManagement = lazy(() => import('./components/DataManagement'));
+const ImportData = lazy(() => import('./components/ImportData'));
+const ReportGenerator = lazy(() => import('./components/ReportGenerator'));
+const CountyDetail = lazy(() => import('./components/CountyDetail'));
+const NotificationHistory = lazy(() => import('./components/NotificationHistory'));
+const UserManagement = lazy(() => import('./components/UserManagement'));
+const PplReport = lazy(() => import('./components/PplReport'));
+
+// Komponen penampung sementara saat file JS sedang diunduh
+const LoadingScreen = () => (
+  <div className="min-h-screen bg-[#F5F7F5] flex items-center justify-center">
+    <div className="flex flex-col items-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#006B4D]"></div>
+      <p className="mt-4 text-gray-600 font-medium text-sm">Menyiapkan halaman...</p>
+    </div>
+  </div>
+);
+
+function AppRoutes() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/kelola_data" element={<ProtectedRoute allowedRoles={['Admin Provinsi', 'Admin Kabupaten']}><DataManagement /></ProtectedRoute>} />
+        <Route path="/import_data" element={<ProtectedRoute allowedRoles={['Admin Provinsi', 'Admin Kabupaten']}><ImportData /></ProtectedRoute>} />
+        <Route path="/cetak_laporan" element={<ProtectedRoute><ReportGenerator /></ProtectedRoute>} />
+        <Route path="/notifikasi" element={<ProtectedRoute><NotificationHistory /></ProtectedRoute>} />
+        <Route path="/users" element={<ProtectedRoute allowedRoles={['Admin Provinsi', 'Admin Kabupaten']}><UserManagement /></ProtectedRoute>} />
+        <Route path="/kabupaten/:id" element={<ProtectedRoute allowedRoles={['Admin Provinsi', 'Admin Kabupaten']}><CountyDetail /></ProtectedRoute>} />
+        <Route path="/laporan_ppl" element={<ProtectedRoute allowedRoles={['PPL']}><PplReport /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [currentId, setCurrentId] = useState<number | null>(null);
-
-  const handleNavigate = (page: string, id: number | null = null) => {
-    setCurrentPage(page);
-    setCurrentId(id);
-  };
-
-  const handleLogin = (role: string) => {
-    setIsLoggedIn(true);
-    if (role === 'PPL') {
-      setCurrentPage('laporan_ppl');
-    } else {
-      setCurrentPage('dashboard');
-    }
-  };
-
-  if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
-  }
-
-  if (currentPage === 'kelola_data') {
-    return <DataManagement onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
-  }
-  
-  if (currentPage === 'import_data') {
-    return <ImportData onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === 'cetak_laporan') {
-    return <ReportGenerator onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === 'county_detail') {
-    return <CountyDetail onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} idKabupaten={currentId} />;
-  }
-
-  if (currentPage === 'notifications') {
-    return <NotificationHistory onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === 'users') {
-    return <UserManagement onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === 'laporan_ppl') {
-    return <PplReport onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
-  }
-
-  return <Dashboard onLogout={() => setIsLoggedIn(false)} onNavigate={handleNavigate} />;
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ErrorBoundary>
+  );
 }

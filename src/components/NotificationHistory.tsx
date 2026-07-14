@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react';
 import Navbar from './Navbar';
-import logo from '../assets/logo_agrivision_ai.png';
 import { supabase } from '../utils/supabaseClient';
-import {
-  Bell,
-  User,
-  Search,
-  Calendar,
-  LogOut,
-  AlertTriangle
-} from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { NotificationLog } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-export default function NotificationHistory({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string, id?: number) => void }) {
+export default function NotificationHistory() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -21,6 +18,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
   useEffect(() => {
     const fetchHistory = async () => {
       try {
+        if (!user) return;
         const { data: records, error: fetchError } = await supabase
           .from('data_alokasi_pupuk')
           .select(`
@@ -43,20 +41,20 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
            return;
         }
 
-        const logs = records.map((r: any) => ({
+        const logs: NotificationLog[] = records.map((r) => ({
           id: r.id_alokasi,
           dikirim_pada: r.last_analyzed_at || new Date().toISOString(),
-          nama_kabupaten: r.master_kabupaten?.nama_kabupaten || 'Unknown',
+          nama_kabupaten: (r.master_kabupaten as any)?.nama_kabupaten || (Array.isArray(r.master_kabupaten) ? (r.master_kabupaten[0] as any)?.nama_kabupaten : 'Unknown'),
           pesan_ai: r.narasi_rekomendasi || '-',
           status_tindakan: r.is_read ? 'dibaca' : 'belum',
           id_kabupaten: r.id_kabupaten
         }));
 
         let total_alerts = logs.length;
-        let total_pending = logs.filter((l: any) => l.status_tindakan === 'belum').length;
+        let total_pending = logs.filter((l) => l.status_tindakan === 'belum').length;
         
-        let kbCounts: any = {};
-        logs.forEach((l: any) => {
+        let kbCounts: Record<string, number> = {};
+        logs.forEach((l) => {
           kbCounts[l.nama_kabupaten] = (kbCounts[l.nama_kabupaten] || 0) + 1;
         });
         
@@ -86,7 +84,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
       }
     };
     fetchHistory();
-  }, [onLogout]);
+  }, [user]);
 
   if (isLoading) {
     return <div className="min-h-screen bg-[#F5F7F5] flex items-center justify-center">Memuat Notifikasi...</div>;
@@ -98,7 +96,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
         <AlertTriangle size={48} className="text-red-500 mb-4" />
         <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
         <p className="text-gray-600 mb-6">{error}</p>
-        <button onClick={() => onNavigate('dashboard')} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Dashboard</button>
+        <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Dashboard</button>
       </div>
     );
   }
@@ -108,12 +106,12 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
       
-      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="notifications" />
+      <Navbar />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <button onClick={() => navigate('/dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
           <span className="hover:text-gray-700 cursor-pointer transition-colors">NOTIFIKASI</span>
           <span>/</span>
@@ -166,7 +164,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
                         </tr>
                     </thead>
                     <tbody className="text-[13px]">
-                        {logs.length > 0 ? logs.map((log: any, idx: number) => {
+                        {logs.length > 0 ? logs.map((log: NotificationLog, idx: number) => {
                             const status = log.status_tindakan?.toLowerCase() || '';
                             const isPending = log.status_tindakan === 'belum';
                             const action_status_class = isPending ? 'bg-amber-100/50 text-[#D97706] border-amber-200' : 'bg-[#D1FAE5]/50 text-[#059669] border-[#A7F3D0]';
@@ -200,7 +198,7 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
 
                                     <td className="py-5 px-6 text-center flex flex-col items-center gap-2">
                                         <button 
-                                            onClick={() => onNavigate('county_detail', log.id_kabupaten)}
+                                            onClick={() => navigate('/kabupaten/' + log.id_kabupaten)}
                                             className="w-full px-4 py-1.5 border border-[#006B4D] text-[#006B4D] rounded-sm text-[11px] font-bold hover:bg-[#006B4D] hover:text-white transition-colors"
                                         >
                                             Lihat Detail
@@ -208,15 +206,24 @@ export default function NotificationHistory({ onLogout, onNavigate }: { onLogout
                                         {isPending && (
                                             <button 
                                                 onClick={async () => {
-                                                    try {
-                                                        const { error } = await supabase.from('data_alokasi_pupuk').update({ is_read: true }).eq('id_alokasi', log.id);
-                                                        if (error) throw error;
-                                                        // Refresh data
-                                                        window.location.reload();
-                                                    } catch (err) {
-                                                        alert('Gagal menandai telah dibaca');
-                                                    }
-                                                }}
+                                        try {
+                                            const { error } = await supabase.from('data_alokasi_pupuk').update({ is_read: true }).eq('id_alokasi', log.id);
+                                            if (error) throw error;
+                                            // Update state locally without full page reload
+                                            setData((prev: any) => ({
+                                              ...prev,
+                                              logs: prev.logs.map((l: any) =>
+                                                l.id === log.id ? { ...l, status_tindakan: 'dibaca' } : l
+                                              ),
+                                              summary: {
+                                                ...prev.summary,
+                                                total_pending: Math.max(0, prev.summary.total_pending - 1)
+                                              }
+                                            }));
+                                        } catch (err) {
+                                            alert('Gagal menandai telah dibaca');
+                                        }
+                                    }}
                                                 className="w-full px-4 py-1.5 bg-amber-500 text-white rounded-sm text-[11px] font-bold hover:bg-amber-600 transition-colors"
                                             >
                                                 Tandai Dibaca

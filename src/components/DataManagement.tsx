@@ -1,23 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import Navbar from './Navbar';
-import logo from '../assets/logo_agrivision_ai.png';
 import { supabase } from '../utils/supabaseClient';
 import {
-  Bell,
-  User,
   ChevronDown,
   Search,
   FileSpreadsheet,
   TrendingUp,
   TrendingDown,
   ArrowRight,
-  LogOut,
   AlertTriangle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MapData } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
-export default function DataManagement({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
-  const [rawData, setRawData] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
+export default function DataManagement() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [rawData, setRawData] = useState<MapData[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,14 +28,10 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
 
   const fetchData = async () => {
     try {
-      const sessionStr = localStorage.getItem('agrivision_session');
-      const userSession = sessionStr ? JSON.parse(sessionStr) : null;
-
-      if (!userSession) {
-        onLogout();
+      if (!user) {
         return;
       }
-      setUser(userSession);
+
 
       const { data: dbData, error: dbError } = await supabase
         .from('data_alokasi_pupuk')
@@ -71,7 +68,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
   const data = useMemo(() => {
      const filteredRaw = rawData.filter(row => !yearFilter || Number(row.tahun) === Number(yearFilter));
      const aggMap = new Map();
-     filteredRaw.forEach((row: any) => {
+     filteredRaw.forEach((row) => {
          const id = row.id_kabupaten;
          if (!aggMap.has(id)) {
             aggMap.set(id, { ...row });
@@ -107,7 +104,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [onLogout]);
+  }, [user]);
 
   // Helper for formatting numbers
   const formatNumber = (num: number, decimals: number = 0) => {
@@ -127,12 +124,12 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
         <AlertTriangle size={48} className="text-red-500 mb-4" />
         <h2 className="text-xl font-bold text-gray-800 mb-2">Error</h2>
         <p className="text-gray-600 mb-6">{error}</p>
-        <button onClick={onLogout} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Login</button>
+        <button onClick={logout} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">Kembali ke Login</button>
       </div>
     );
   }
 
-  const filteredData = data.filter((row: any) => {
+  const filteredData = data.filter((row: MapData) => {
     const matchSearch = row.nama_kabupaten?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                         row.kode_bps?.includes(searchQuery);
     const matchStatus = statusFilter === 'Semua Status' || 
@@ -142,12 +139,12 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans">
-      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="kelola_data" />
+      <Navbar />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <button onClick={() => navigate('/dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
           <span className="text-gray-900">ALOKASI PUPUK</span>
         </div>
@@ -160,7 +157,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
         <div className="flex items-center justify-between">
           <h1 className="text-[22px] font-extrabold text-[#113224] tracking-tight">Data Alokasi & Prediksi e-RDKK</h1>
           <button 
-            onClick={() => onNavigate('import_data')}
+            onClick={() => navigate('/import_data')}
             className="bg-[#10B981] hover:bg-[#059669] text-white font-bold px-4 py-2.5 rounded flex items-center gap-2 transition-colors text-[13px] tracking-wide shadow-sm"
           >
             <FileSpreadsheet size={16} strokeWidth={2} />
@@ -243,7 +240,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
                 </tr>
               </thead>
               <tbody className="text-[13px]">
-                {filteredData.length > 0 ? filteredData.map((row: any, index: number) => {
+                {filteredData.length > 0 ? filteredData.map((row: MapData, index: number) => {
                   const status = (row.status_risiko || 'aman').toLowerCase();
                   let badgeClass = '';
                   
@@ -276,7 +273,7 @@ export default function DataManagement({ onLogout, onNavigate }: { onLogout: () 
                   const bgClass = index % 2 === 1 ? 'bg-[#FAFAFA]' : '';
 
                   return (
-                    <tr key={row.id || index} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${bgClass}`}>
+                    <tr key={row.id_alokasi || index} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${bgClass}`}>
                       <td className="py-4 px-6 text-gray-400 font-mono text-[12px]">{row.kode_bps || '-'}</td>
                       <td className="py-4 px-6 font-bold text-gray-900">{row.nama_kabupaten}</td>
                       <td className="py-4 px-6 text-right font-bold text-gray-700 font-mono">{formatNumber(row.luas_lahan, 2)}</td>

@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { FileText, Send, MapPin, AlertCircle, CheckCircle2, Leaf, Droplets, Bug } from 'lucide-react';
-import logo from '../assets/logo_agrivision_ai.png';
+import { useNavigate } from 'react-router-dom';
+import { LaporanPpl } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import Navbar from './Navbar';
 
-interface PplReportProps {
-  onLogout: () => void;
-  onNavigate: (page: string) => void;
-}
-
-export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [reports, setReports] = useState<any[]>([]);
+export default function PplReport() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [reports, setReports] = useState<LaporanPpl[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Form State
@@ -21,17 +20,12 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    const sessionStr = localStorage.getItem('agrivision_session');
-    if (sessionStr) {
-      const user = JSON.parse(sessionStr);
-      setCurrentUser(user);
-      fetchMyReports(user.id_user);
-    } else {
-      onLogout();
+    if (user) {
+      fetchMyReports(user.id);
     }
-  }, [onLogout]);
+  }, [user]);
 
-  const fetchMyReports = async (userId: number) => {
+  const fetchMyReports = async (userId: string) => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -42,8 +36,6 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
 
       if (error) throw error;
       setReports(data || []);
-    } catch (err: any) {
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -51,16 +43,16 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!user) return;
     
     setIsSubmitting(true);
     setMessage({ type: '', text: '' });
 
     try {
       const payload = {
-        id_user: currentUser.id_user,
-        id_kabupaten: currentUser.id_kabupaten,
-        nama_kecamatan: currentUser.nama_kecamatan || 'Tidak Diketahui',
+        id_user: user.id,
+        id_kabupaten: user.id_kabupaten,
+        nama_kecamatan: user.nama_kecamatan || 'Tidak Diketahui',
         kondisi_lahan: kondisiLahan,
         usulan_tambahan_urea: usulanUrea ? parseFloat(usulanUrea) : 0,
         catatan_lapangan: catatan
@@ -74,14 +66,14 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
       setKondisiLahan('Normal');
       setUsulanUrea('');
       setCatatan('');
-      fetchMyReports(currentUser.id_user);
+      if (user?.id) fetchMyReports(user.id);
       
       // Auto hide success message
       setTimeout(() => setMessage({ type: '', text: '' }), 5000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setMessage({ type: 'error', text: 'Gagal mengirim laporan: ' + err.message });
+      setMessage({ type: 'error', text: 'Gagal mengirim laporan: ' + (err as Error).message });
     } finally {
       setIsSubmitting(false);
     }
@@ -89,29 +81,14 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-      {/* Header Khusus PPL */}
-      <nav className="bg-[#023E2D] text-white shrink-0 shadow-sm z-10 relative">
-        <div className="flex items-center justify-between px-4 md:px-6 h-[64px]">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
-            <span className="font-extrabold text-[16px] tracking-wide">AGRIVISION AI <span className="font-medium text-white/70 ml-2 hidden sm:inline">| Portal PPL</span></span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <div className="text-[13px] font-bold">{currentUser?.nama_lengkap}</div>
-              <div className="text-[11px] text-[#0FE193] font-medium">{currentUser?.nama_kecamatan || 'WKPP Belum Diset'}</div>
-            </div>
-            <button onClick={onLogout} className="text-sm font-medium hover:text-[#0FE193] transition-colors border border-white/20 px-3 py-1.5 rounded-md bg-white/5">Keluar</button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-auto min-h-[48px] py-2 md:py-0 md:h-[60px] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 gap-1 md:gap-2 uppercase flex-wrap">
           <span className="text-gray-900">PORTAL PPL</span>
           <span>/</span>
-          <span className="text-gray-900">{currentUser?.nama_kabupaten || 'KABUPATEN'}</span>
+          <span className="text-gray-900">{user?.nama_kabupaten || 'KABUPATEN'}</span>
         </div>
       </div>
 
@@ -127,7 +104,7 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
               </h2>
               <p className="text-white/80 text-[12px] mt-1 flex items-center gap-1">
                 <MapPin size={12} />
-                Kecamatan: <span className="font-semibold">{currentUser?.nama_kecamatan || '-'}</span>
+                Kecamatan: <span className="font-semibold">{user?.nama_kecamatan || '-'}</span>
               </p>
             </div>
             
@@ -185,8 +162,8 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
 
               <button 
                 type="submit" 
-                disabled={isSubmitting || !currentUser?.nama_kecamatan}
-                className={`w-full py-3 rounded-md font-bold text-[13px] flex items-center justify-center gap-2 transition-colors mt-2 ${isSubmitting || !currentUser?.nama_kecamatan ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#006B4D] hover:bg-[#00573E] text-white shadow-md'}`}
+                disabled={isSubmitting || !user?.nama_kecamatan}
+                className={`w-full py-3 rounded-md font-bold text-[13px] flex items-center justify-center gap-2 transition-colors mt-2 ${isSubmitting || !user?.nama_kecamatan ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#006B4D] hover:bg-[#00573E] text-white shadow-md'}`}
               >
                 {isSubmitting ? 'Mengirim...' : (
                   <>
@@ -196,7 +173,7 @@ export default function PplReport({ onLogout, onNavigate }: PplReportProps) {
                 )}
               </button>
               
-              {!currentUser?.nama_kecamatan && (
+              {!user?.nama_kecamatan && (
                 <p className="text-[11px] text-red-500 text-center font-medium">Anda belum di-assign ke Kecamatan manapun. Hubungi Admin.</p>
               )}
             </form>

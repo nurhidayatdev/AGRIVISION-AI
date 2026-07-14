@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import Navbar from './Navbar';
 import bcrypt from 'bcryptjs';
-import logo from '../assets/logo_agrivision_ai.png';
 import {
-  Bell,
-  User,
-  ChevronRight,
-  LogOut,
   Search,
   ChevronDown,
   Plus,
@@ -16,11 +11,16 @@ import {
   Edit2
 } from 'lucide-react';
 import KECAMATAN_DATA from '../utils/kecamatan_sulsel.json';
+import { useNavigate } from 'react-router-dom';
+import { UserAccount, MasterKabupaten } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
-export default function UserManagement({ onLogout, onNavigate }: { onLogout: () => void, onNavigate: (page: string) => void }) {
-  const [users, setUsers] = useState<any[]>([]);
-  const [kabupatens, setKabupatens] = useState<any[]>([]);
-  const [kecamatans, setKecamatans] = useState<any[]>([]);
+export default function UserManagement() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [kabupatens, setKabupatens] = useState<MasterKabupaten[]>([]);
+  const [kecamatans, setKecamatans] = useState<{id: string; name: string}[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -50,20 +50,23 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
       if (error) {
         console.error("Supabase Error:", error);
       } else if (data) {
-        const formattedData = data.map((u: any) => ({
+        const formattedData = data.map((u) => ({
           ...u,
           nama_kabupaten: u.master_kabupaten?.nama_kabupaten || 'Semua Kabupaten (Provinsi)'
         }));
         setUsers(formattedData);
       }
-      
-      // Ambil user dari localStorage untuk currentUser
-      const sessionStr = localStorage.getItem('agrivision_session');
-      if (sessionStr) setCurrentUser(JSON.parse(sessionStr));
     } catch (err) {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+    setCurrentUser(user);
+    fetchUsers();
+    fetchKabupaten();
+  }, [user]);
 
   const fetchKabupaten = async () => {
     try {
@@ -74,10 +77,7 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-    fetchKabupaten();
-  }, []);
+
 
   // Gunakan data statis dari JSON lokal
   useEffect(() => {
@@ -104,8 +104,8 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
     setIsModalOpen(true);
   };
 
-  const openEditModal = (user: any) => {
-    setEditId(user.id_user);
+  const openEditModal = (user: UserAccount) => {
+    setEditId(user.id_user ?? null);
     setNip(user.nip);
     setNamaLengkap(user.nama_lengkap);
     setRole(user.role);
@@ -164,13 +164,13 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
 
       if (editId) {
         // Update
-        const payload: any = {
+        const payload: Partial<UserAccount> = {
           nip,
           nama_lengkap: namaLengkap,
           role,
-          id_kabupaten: idKabupaten ? parseInt(idKabupaten) : null,
-          nama_kecamatan: role === 'PPL' ? namaKecamatan : null,
-          nomor_wa: nomorWa || null,
+          id_kabupaten: idKabupaten ? parseInt(idKabupaten) : undefined,
+          nama_kecamatan: role === 'PPL' ? namaKecamatan : undefined,
+          nomor_wa: nomorWa || undefined,
         };
         if (hash) payload.password_hash = hash;
 
@@ -218,12 +218,12 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans relative">
-      <Navbar onNavigate={onNavigate} onLogout={onLogout} activePage="users" />
+      <Navbar />
 
       {/* Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 h-[48px] flex items-center shrink-0 shadow-sm z-10">
         <div className="flex items-center text-[11px] font-bold tracking-widest text-gray-400 gap-2">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
+          <button onClick={() => navigate('/dashboard')} className="hover:text-gray-700 cursor-pointer transition-colors">BERANDA</button>
           <span>/</span>
           <span className="text-gray-900">KELOLA PENGGUNA</span>
         </div>
@@ -309,7 +309,7 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
                       <td className="py-5 px-6">
                         <div className="flex items-center justify-end gap-3">
                           <button onClick={() => openEditModal(u)} className="text-[#006B4D] hover:text-[#004D36] transition-colors"><Edit2 size={16}/></button>
-                          <button onClick={() => handleDeleteUser(u.id_user)} className="text-[#DC2626] hover:text-red-800 transition-colors"><Trash2 size={16}/></button>
+                          <button onClick={() => u.id_user && handleDeleteUser(u.id_user)} className="text-[#DC2626] hover:text-red-800 transition-colors"><Trash2 size={16}/></button>
                         </div>
                       </td>
                     </tr>
@@ -372,7 +372,7 @@ export default function UserManagement({ onLogout, onNavigate }: { onLogout: () 
                     <label className="text-[13px] font-bold text-[#113224]">Kecamatan (Khusus PPL)</label>
                     <select value={namaKecamatan} onChange={e => setNamaKecamatan(e.target.value)} required={role === 'PPL'} disabled={!idKabupaten || kecamatans.length === 0} className="w-full px-3 py-2.5 border border-gray-200 rounded-sm text-[13px] focus:outline-none focus:border-[#006B4D] focus:ring-1 focus:ring-[#006B4D] disabled:bg-gray-100 disabled:cursor-not-allowed">
                       <option value="">{idKabupaten ? (kecamatans.length > 0 ? "Pilih Kecamatan" : "Data Kecamatan Kosong") : "Pilih Kabupaten Terlebih Dahulu"}</option>
-                      {kecamatans.map((kec: any) => (
+                      {kecamatans.map((kec) => (
                         <option key={kec.id} value={kec.name}>{kec.name}</option>
                       ))}
                     </select>
